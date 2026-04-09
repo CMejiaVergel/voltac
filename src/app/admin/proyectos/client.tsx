@@ -1,6 +1,6 @@
 "use client";
 
-import React, from "react";
+import React from "react";
 import { Plus, Edit2, Trash2, Globe, EyeOff, MapPin, Briefcase } from "lucide-react";
 import Image from "next/image";
 import { createProject, updateProject, deleteProject, toggleProjectStatus } from "./actions";
