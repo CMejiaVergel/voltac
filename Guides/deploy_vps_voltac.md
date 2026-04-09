@@ -65,24 +65,24 @@ npm run build
 
 ## 4. Despliegue Continuo con PM2
 
-Utilizaremos **PM2** para que la app se ejecute de fondo, se reinicie sola si hay errores o si el servidor se reinicia, sobre un puerto que no colisione (por defecto Next.js usa el 3000).
+Utilizaremos **PM2** para que la app se ejecute de fondo, se reinicie sola si hay errores o si el servidor se reinicia, sobre un puerto específico. En este caso, usaremos el `3001` para evitar interferencias con tu web paralela corriendo en el `3000`.
 
 ```bash
 # Levantar la aplicación con PM2
-pm2 start npm --name "voltac-systems" -- run start
+pm2 start node_modules/.bin/next --name "voltac-systems" -- start -p 3001
 
 # Guardar la lista actual de PM2 e inyectarlo en el inicio del sistema operativo
 pm2 save
 pm2 startup
 ```
 
-> **Nota importante para Next.js:** Asegúrate de que el puerto `3000` esté libre o especifica otro en el arranque si vas a mantener ambas apps encendidas a futuro.
+> **Nota importante:** El flag `-- -p 3001` obliga a Next.js a ejecutarse en este puerto específico dejando el 3000 despejado para Voltac Energy.
 
 ---
 
 ## 5. Configurar el Proxy Inverso con NGINX
 
-Nginx tomará el tráfico del dominio `voltac.com.co` desde el puerto `80` (HTTP) y lo enrutará localmente hacia tu Next.js en el puerto `3000`. 
+Nginx tomará el tráfico del dominio `voltac.com.co` desde el puerto `80` (HTTP) y lo enrutará localmente hacia tu Next.js alojado en el puerto `3001`. 
 
 Si tu VPS venía con una página por defecto de Apache o Nginx, asegúrate de deshabilitarla primero para liberar el tráfico general:
 ```bash
@@ -102,8 +102,10 @@ server {
     listen 80;
     server_name voltac.com.co www.voltac.com.co;
 
+    client_max_body_size 50M;
+
     location / {
-        proxy_pass http://localhost:3000;
+        proxy_pass http://localhost:3001;
         proxy_http_version 1.1;
         proxy_set_header Upgrade $http_upgrade;
         proxy_set_header Connection 'upgrade';

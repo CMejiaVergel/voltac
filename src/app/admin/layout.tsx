@@ -47,7 +47,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Mobile Topbar */}
       <div className="md:hidden bg-secondary text-white p-4 flex items-center justify-between shrink-0 z-50 shadow-md">
         <Link href="/admin" className="flex items-center gap-2">
-          <Image src="/Logo_fondo_claro.png" alt="Voltac Admin" width={120} height={30} className="w-auto h-6 object-contain" priority />
+          <Image src="/Logo_fondo_oscuro.png" alt="Voltac Admin" width={120} height={30} className="w-auto h-6 object-contain" priority />
         </Link>
         <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-1 hover:bg-white/10 rounded-lg transition-colors text-white">
            {mobileMenuOpen ? <X size={24}/> : <Menu size={24}/>}
@@ -69,7 +69,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="p-6 border-b border-white/10 flex flex-col items-center justify-center min-h-[88px]">
           {!collapsed ? (
             <Link href="/admin" className="block w-full">
-              <Image src="/Logo_fondo_claro.png" alt="Voltac Admin" width={150} height={40} className="w-auto h-8 object-contain" priority />
+              <Image src="/Logo_fondo_oscuro.png" alt="Voltac Admin" width={150} height={40} className="w-auto h-8 object-contain" priority />
               <span className="text-primary block text-[10px] tracking-[0.2em] font-bold mt-2" style={{ fontFamily: "Akira Expanded, sans-serif" }}>ADMIN PANEL</span>
             </Link>
           ) : (

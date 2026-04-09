@@ -9,6 +9,7 @@ export default function ProyectosClient({ initialData }: { initialData: any[] })
   const [proyectos, setProyectos] = React.useState(initialData);
   const [modalOpen, setModalOpen] = React.useState(false);
   const [editingData, setEditingData] = React.useState<any>(null);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const [formData, setFormData] = React.useState({
     title: "", techType: "Software Custom", challenge: "", solution: "", 
@@ -35,12 +36,32 @@ export default function ProyectosClient({ initialData }: { initialData: any[] })
 
   const handleSave = async (e: any) => {
     e.preventDefault();
-    if (editingData) {
-      await updateProject(editingData.id, formData);
-    } else {
-      await createProject(formData);
+    setIsSubmitting(true);
+    try {
+      const fd = new FormData();
+      fd.append("title", formData.title);
+      fd.append("techType", formData.techType);
+      fd.append("challenge", formData.challenge);
+      fd.append("solution", formData.solution);
+      fd.append("metrics", typeof formData.metrics === "string" ? formData.metrics : JSON.stringify(formData.metrics));
+      fd.append("isPublished", formData.isPublished ? "true" : "false");
+      fd.append("existingImageUrl", formData.imageUrl);
+
+      const fileInput = document.getElementById("coverImage") as HTMLInputElement;
+      if (fileInput?.files?.[0]) {
+        fd.append("file", fileInput.files[0]);
+      }
+
+      if (editingData) {
+        await updateProject(editingData.id, fd);
+      } else {
+        await createProject(fd);
+      }
+      window.location.reload();
+    } catch (error) {
+      alert("Error al guardar el proyecto. Revisa tu conexión y el peso de la imagen.");
+      setIsSubmitting(false);
     }
-    window.location.reload();
   };
 
   const handleDelete = async (id: number) => {
@@ -110,57 +131,71 @@ export default function ProyectosClient({ initialData }: { initialData: any[] })
         )}
       </div>
 
-      {/* Basic Editor Modal */}
       {modalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-secondary/80 backdrop-blur-sm">
-          <div className="bg-background rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl relative border border-border p-6">
-            <h2 className="text-xl font-bold mb-6 text-secondary">{editingData ? 'Editar Proyecto' : 'Registrar Nuevo Proyecto'}</h2>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-secondary/80 backdrop-blur animate-in fade-in">
+          <div className="bg-background rounded-3xl w-full max-w-5xl max-h-[95vh] overflow-hidden flex flex-col shadow-2xl relative border border-border">
+            <div className="p-6 border-b border-border bg-white flex justify-between items-center shrink-0">
+               <h2 className="text-2xl font-black">{editingData ? 'Editar Proyecto' : 'Nuevo Proyecto'}</h2>
+               <button type="button" onClick={() => setModalOpen(false)} className="p-2 bg-muted rounded-full hover:bg-secondary/10">X</button>
+            </div>
             
-            <form onSubmit={handleSave} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold uppercase text-secondary/60">Título del Proyecto</label>
-                  <input type="text" required className="w-full form-input" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-xs font-bold uppercase text-secondary/60">Tipo de Tecnología</label>
-                  <select required className="w-full form-input" value={formData.techType} onChange={e => setFormData({...formData, techType: e.target.value})}>
-                    <option>Software Custom</option><option>Inteligencia Artificial</option><option>App Móvil</option><option>IoT & Hardware</option><option>Automatización WhatsApp</option>
-                  </select>
-                </div>
-              </div>
+            <form onSubmit={handleSave} className="flex flex-col flex-1 overflow-hidden">
+               <div className="p-6 overflow-y-auto flex-1 space-y-6">
+                 <div className="grid md:grid-cols-2 gap-6">
+                   <div className="space-y-4">
+                     <div>
+                       <label className="text-xs font-bold uppercase text-secondary/60 tracking-widest">Título del Proyecto</label>
+                       <input type="text" required className="w-full p-3 rounded-xl bg-white border border-border outline-none focus:border-primary text-secondary font-bold text-lg" value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} placeholder="Ej: Implementación CRM Custom..." />
+                     </div>
+                     <div>
+                       <label className="text-xs font-bold uppercase text-secondary/60 tracking-widest">Tipo de Tecnología</label>
+                       <select required className="w-full p-3 rounded-xl bg-white border border-border outline-none text-secondary" value={formData.techType} onChange={e => setFormData({...formData, techType: e.target.value})}>
+                         <option>Software Custom</option><option>Inteligencia Artificial</option><option>App Móvil</option><option>IoT & Hardware</option><option>Automatización WhatsApp</option>
+                       </select>
+                     </div>
+                   </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold uppercase text-secondary/60">El Reto (Problema del cliente)</label>
-                <textarea required rows={3} className="w-full form-input resize-none" value={formData.challenge} onChange={e => setFormData({...formData, challenge: e.target.value})} />
-              </div>
+                   <div className="space-y-2">
+                     <label className="text-xs font-bold uppercase tracking-widest text-secondary/60">Imagen de Portada</label>
+                     <div className="bg-muted border-2 border-dashed border-border rounded-xl p-4 flex flex-col items-center justify-center text-center gap-2 h-[180px] relative overflow-hidden">
+                        {formData.imageUrl && formData.imageUrl !== '/Voltac_enviroment.png' && <Image src={formData.imageUrl} fill alt="Cover" className="object-cover absolute inset-0 opacity-30"/>}
+                        <input type="file" id="coverImage" accept="image/*" className="relative z-10 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-primary file:text-secondary hover:file:bg-primary/80 cursor-pointer w-full text-secondary/60 text-sm"/>
+                        <p className="text-[10px] text-secondary/50 relative z-10">Recomendado: 1920x1080px. Máximo 50MB.</p>
+                     </div>
+                   </div>
+                 </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold uppercase text-secondary/60">La Solución Implementada</label>
-                <textarea required rows={3} className="w-full form-input resize-none" value={formData.solution} onChange={e => setFormData({...formData, solution: e.target.value})} />
-              </div>
+                 <div className="space-y-4">
+                   <div className="space-y-1">
+                     <label className="text-xs font-bold uppercase text-secondary/60 tracking-widest">El Reto (Problema del cliente)</label>
+                     <textarea required rows={4} className="w-full p-3 rounded-xl bg-white border border-border outline-none focus:border-primary text-secondary resize-none" value={formData.challenge} onChange={e => setFormData({...formData, challenge: e.target.value})} />
+                   </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold uppercase text-secondary/60">Métricas (JSON Array)</label>
-                <textarea rows={2} className="w-full form-input font-mono text-xs" value={typeof formData.metrics === 'string' ? formData.metrics : JSON.stringify(formData.metrics)} onChange={e => setFormData({...formData, metrics: e.target.value})} />
-                <p className="text-[10px] text-secondary/50">Ej: <code>{`[{"label": "Reducción Tiempo", "value": "90%"}, {"label": "Usuarios", "value": "1M+"}]`}</code></p>
-              </div>
+                   <div className="space-y-1">
+                     <label className="text-xs font-bold uppercase text-secondary/60 tracking-widest">La Solución Implementada</label>
+                     <textarea required rows={4} className="w-full p-3 rounded-xl bg-white border border-border outline-none focus:border-primary text-secondary resize-none" value={formData.solution} onChange={e => setFormData({...formData, solution: e.target.value})} />
+                   </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold uppercase text-secondary/60">URL Imagen Portada</label>
-                <input type="text" className="w-full form-input" value={formData.imageUrl} onChange={e => setFormData({...formData, imageUrl: e.target.value})} />
-              </div>
+                   <div className="space-y-1">
+                     <label className="text-xs font-bold uppercase text-secondary/60 tracking-widest">Métricas (JSON Array)</label>
+                     <textarea rows={2} className="w-full p-3 rounded-xl bg-muted border border-border outline-none font-mono text-xs text-secondary/80 focus:ring-1 ring-primary" value={typeof formData.metrics === 'string' ? formData.metrics : JSON.stringify(formData.metrics)} onChange={e => setFormData({...formData, metrics: e.target.value})} />
+                     <p className="text-[10px] text-secondary/50">Ej: <code>{`[{"label": "Reducción Tiempo", "value": "90%"}, {"label": "Usuarios", "value": "1M+"}]`}</code></p>
+                   </div>
+                 </div>
+               </div>
 
-              <div className="flex items-center gap-2 pt-2">
-                <input type="checkbox" id="isPub" checked={formData.isPublished} onChange={e => setFormData({...formData, isPublished: e.target.checked})} />
-                <label htmlFor="isPub" className="text-sm font-bold text-secondary cursor-pointer">Publicar directamente en la web</label>
-              </div>
-
-              <div className="pt-6 flex justify-end gap-3 border-t border-border mt-6">
-                <button type="button" onClick={() => setModalOpen(false)} className="px-4 py-2 font-bold text-secondary/60 hover:bg-muted rounded-lg">Cancelar</button>
-                <button type="submit" className="px-6 py-2 bg-primary text-white font-bold rounded-lg hover:bg-primary/90 shadow-md">Guardar Proyecto</button>
-              </div>
+               <div className="p-6 border-t border-border bg-muted/30 flex justify-between items-center shrink-0 mt-auto">
+                 <div className="flex items-center gap-2">
+                   <input type="checkbox" id="isPub" checked={formData.isPublished} onChange={e => setFormData({...formData, isPublished: e.target.checked})} className="w-4 h-4 accent-primary" />
+                   <label htmlFor="isPub" className="text-sm font-bold text-secondary cursor-pointer">Publicar directamente en el portafolio</label>
+                 </div>
+                 <div className="flex gap-4">
+                   <button type="button" onClick={() => setModalOpen(false)} className="px-6 py-2 font-bold text-secondary/60 hover:bg-muted rounded-full" disabled={isSubmitting}>Cancelar</button>
+                   <button type="submit" className="px-6 py-2 bg-secondary text-primary font-bold rounded-full hover:bg-secondary/90 shadow-md" disabled={isSubmitting}>Guardar Proyecto</button>
+                 </div>
+               </div>
             </form>
+            {isSubmitting && <div className="absolute inset-0 bg-white/50 backdrop-blur-sm flex items-center justify-center font-bold text-xl z-50">Guardando y Comprimiendo...</div>}
           </div>
         </div>
       )}
