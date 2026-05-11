@@ -1,0 +1,24 @@
+# Voltac Systems
+
+## Quiénes somos
+Voltac Systems es una empresa de tecnología con sede en Colombia, especializada en el desarrollo de software a medida, inteligencia artificial aplicada a negocios B2B, automatización comercial y hardware IoT. Fundada en 2024, trabaja con empresas que buscan transformación digital real y medible.
+
+## Servicios principales
+- Desarrollo de Software Web y SAAS a medida
+- Agentes de IA y sistemas RAG (Recuperación Aumentada por Generación)
+- Automatización comercial (WhatsApp, Instagram, CRM)
+- Ingeniería de Datos y Cloud (AWS, Vercel, Docker)
+- Hardware, IoT e integraciones industriales (Modbus, RS485)
+- Consultoría tecnológica y auditoría de código
+
+## Stack tecnológico
+Next.js, React, Python, FastAPI, Node.js, PostgreSQL, Docker, AWS, OpenAI, Anthropic Claude, Arduino, C++
+
+## Propuesta de valor
+Reducción de tiempos operativos hasta 85%, soporte a más de 100K usuarios, y más de 300% de mejora en automatización de procesos comerciales.
+
+## Ubicación y cobertura
+Colombia. Servicio remoto en toda Latinoamérica.
+
+## Contacto y web
+https://voltac.com.co | contacto@voltac.com.co
