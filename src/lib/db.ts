@@ -269,6 +269,15 @@ export async function getDB() {
       accInvMigrations.push("ALTER TABLE acc_invoices ADD COLUMN terms TEXT;");
     for (const q of accInvMigrations) { await db.exec(q); }
 
+    // Migrate acc_calendar_events — add priority and color columns
+    const accCalCols = await db.all("PRAGMA table_info(acc_calendar_events)");
+    const accCalColNames = accCalCols.map((c: any) => c.name);
+    if (!accCalColNames.includes('priority'))
+      await db.exec("ALTER TABLE acc_calendar_events ADD COLUMN priority TEXT DEFAULT 'Media';");
+    if (!accCalColNames.includes('color'))
+      await db.exec("ALTER TABLE acc_calendar_events ADD COLUMN color TEXT;");
+
+
     const keys = await db.all('SELECT * FROM api_keys');
     if (keys.length === 0) {
       await db.exec(`INSERT INTO api_keys (key, name) VALUES ('voltac_sk_default123', 'Default Key')`);

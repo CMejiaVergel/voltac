@@ -1,302 +1,327 @@
 "use client";
-
 import React, { useState, useEffect, useCallback } from "react";
-import { ChevronLeft, ChevronRight, Plus, X, Calendar, FileText, AlertCircle, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Plus, X, AlertTriangle, Calendar, CreditCard, Users, Bell, FileText, Trash2, ChevronDown, ChevronUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const DAYS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+const DAYS_ES = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
 const MONTHS_ES = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+const PRIORITIES = ["Alta","Media","Baja"] as const;
+const EVENT_TYPES = ["general","Tributario","Pago","Reunión","Recordatorio"] as const;
+type Priority = typeof PRIORITIES[number];
+type EventType = typeof EVENT_TYPES[number];
 
-const EVENT_STYLES: Record<string, string> = {
-  invoice_due: "bg-red-100 text-red-700 border-red-200",
-  general:     "bg-blue-100 text-blue-700 border-blue-200",
-  meeting:     "bg-purple-100 text-purple-700 border-purple-200",
-  payment:     "bg-green-100 text-green-700 border-green-200",
-  reminder:    "bg-amber-100 text-amber-700 border-amber-200",
+const TYPE_CFG: Record<string, { label: string; color: string; bg: string; border: string; icon: React.ReactNode; urgent?: boolean }> = {
+  Tributario:  { label:"Tributario",  color:"text-red-700",   bg:"bg-red-50",    border:"border-red-500",  icon:<AlertTriangle size={13}/>, urgent:true },
+  Pago:        { label:"Pago",        color:"text-green-700", bg:"bg-green-50",  border:"border-green-500",icon:<CreditCard size={13}/> },
+  Reunión:     { label:"Reunión",     color:"text-purple-700",bg:"bg-purple-50", border:"border-purple-400",icon:<Users size={13}/> },
+  Recordatorio:{ label:"Recordatorio",color:"text-amber-700", bg:"bg-amber-50",  border:"border-amber-400", icon:<Bell size={13}/> },
+  general:     { label:"General",     color:"text-blue-700",  bg:"bg-blue-50",   border:"border-blue-400",  icon:<Calendar size={13}/> },
+};
+const PRIORITY_CFG: Record<Priority,{label:string;cls:string}> = {
+  Alta:  { label:"ALTA",  cls:"bg-red-100 text-red-700 border-red-200" },
+  Media: { label:"MEDIA", cls:"bg-amber-100 text-amber-700 border-amber-200" },
+  Baja:  { label:"BAJA",  cls:"bg-gray-100 text-gray-600 border-gray-200" },
 };
 
-const EVENT_ICONS: Record<string, React.ReactNode> = {
-  invoice_due: <AlertCircle size={11} />,
-  general:     <Calendar size={11} />,
-  meeting:     <Calendar size={11} />,
-  payment:     <FileText size={11} />,
-  reminder:    <AlertCircle size={11} />,
-};
+// ── helpers ──
+const toDateStr = (d: Date) => `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const getMondayOf = (d: Date) => { const r=new Date(d); r.setDate(d.getDate()-((d.getDay()+6)%7)); return r; };
+const addDays = (d: Date, n: number) => { const r=new Date(d); r.setDate(d.getDate()+n); return r; };
 
-interface CalendarEvent {
-  id: string | number;
-  title: string;
-  type: string;
-  date: string;
-  description?: string;
-  virtual?: boolean;
-}
-
-interface NewEventForm {
-  title: string;
-  type: string;
-  date: string;
-  time: string;
-  description: string;
-}
+interface CalEvent { id:string|number; title:string; type:string; date:string; time?:string; description?:string; priority?:string; virtual?:boolean; linked_type?:string; linked_id?:any; }
 
 export default function CalendarioPage() {
   const today = new Date();
-  const [currentYear, setCurrentYear] = useState(today.getFullYear());
-  const [currentMonth, setCurrentMonth] = useState(today.getMonth()); // 0-indexed
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [selectedDay, setSelectedDay] = useState<string | null>(null);
-  const [showNewEvent, setShowNewEvent] = useState(false);
-  const [form, setForm] = useState<NewEventForm>({ title: "", type: "general", date: "", time: "", description: "" });
+  const [weekStart, setWeekStart] = useState(getMondayOf(today));
+  const [selectedDay, setSelectedDay] = useState<string|null>(toDateStr(today));
+  const [filter, setFilter] = useState<string>("all");
+  const [expandedId, setExpandedId] = useState<string|null>(null);
+  const [events, setEvents] = useState<CalEvent[]>([]);
+  const [showModal, setShowModal] = useState(false);
+  const [form, setForm] = useState({ title:"", type:"general" as EventType, date:toDateStr(today), time:"", description:"", priority:"Media" as Priority });
   const [isSaving, setIsSaving] = useState(false);
 
-  const monthKey = `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}`;
+  const weekDays = Array.from({length:7},(_,i)=>addDays(weekStart,i));
+  const monthKey = `${weekStart.getFullYear()}-${String(weekStart.getMonth()+1).padStart(2,"0")}`;
 
-  const fetchEvents = useCallback(async () => {
-    const res = await fetch(`/api/accounting/calendar?month=${monthKey}`);
+  const fetchEvents = useCallback(async()=>{
+    const res = await fetch(`/api/accounting/calendar`);
     const j = await res.json();
-    if (j.success) setEvents(j.data);
-  }, [monthKey]);
+    if(j.success) setEvents(j.data);
+  },[]);
 
-  useEffect(() => { fetchEvents(); }, [fetchEvents]);
+  useEffect(()=>{ fetchEvents(); },[fetchEvents]);
 
-  const prevMonth = () => {
-    if (currentMonth === 0) { setCurrentMonth(11); setCurrentYear(y => y - 1); }
-    else setCurrentMonth(m => m - 1);
-  };
-  const nextMonth = () => {
-    if (currentMonth === 11) { setCurrentMonth(0); setCurrentYear(y => y + 1); }
-    else setCurrentMonth(m => m + 1);
-  };
+  // Compute counts per day per type
+  const countsByDay = (dateStr:string, type:string) =>
+    events.filter(e=>e.date===dateStr && (type==="all"||e.type===type)).length;
 
-  // Build calendar grid
-  const firstDay = new Date(currentYear, currentMonth, 1).getDay();
-  const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-  const cells: (number | null)[] = [...Array(firstDay).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
-  while (cells.length % 7 !== 0) cells.push(null);
+  // Displayed events: filter by selectedDay or whole week, then by type
+  const visibleEvents = events.filter(e=>{
+    const inWeek = weekDays.some(d=>toDateStr(d)===e.date);
+    const inDay  = !selectedDay || e.date===selectedDay;
+    const inType = filter==="all" || e.type===filter;
+    return inWeek && inDay && inType;
+  }).sort((a,b)=>{
+    if(a.date!==b.date) return a.date.localeCompare(b.date);
+    return (a.time||"00:00").localeCompare(b.time||"00:00");
+  });
 
-  const getDateStr = (day: number) => `${currentYear}-${String(currentMonth + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-  const eventsForDay = (day: number) => events.filter(e => e.date === getDateStr(day));
-  const selectedEvents = selectedDay ? events.filter(e => e.date === selectedDay) : [];
+  // Group by day
+  const grouped: Record<string, CalEvent[]> = {};
+  for(const ev of visibleEvents){
+    if(!grouped[ev.date]) grouped[ev.date]=[];
+    grouped[ev.date].push(ev);
+  }
 
-  const handleSave = async () => {
-    if (!form.title || !form.date) return;
+  const handleSave = async()=>{
+    if(!form.title||!form.date) return;
     setIsSaving(true);
-    try {
-      await fetch("/api/accounting/calendar", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      });
-      setShowNewEvent(false);
-      setForm({ title: "", type: "general", date: "", time: "", description: "" });
-      fetchEvents();
-    } finally { setIsSaving(false); }
-  };
-
-  const handleDelete = async (id: string | number) => {
-    if (String(id).startsWith("inv-")) return; // virtual — can't delete
-    if (!confirm("¿Eliminar este evento?")) return;
-    await fetch(`/api/accounting/calendar/${id}`, { method: "DELETE" });
+    await fetch("/api/accounting/calendar",{ method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(form) });
+    setShowModal(false);
+    setForm({title:"",type:"general",date:toDateStr(today),time:"",description:"",priority:"Media"});
     fetchEvents();
-    setSelectedDay(null);
+    setIsSaving(false);
+  };
+  const handleDelete = async(id:string|number)=>{
+    if(String(id).startsWith("inv-")) return;
+    if(!confirm("¿Eliminar evento?")) return;
+    await fetch(`/api/accounting/calendar/${id}`,{method:"DELETE"});
+    setExpandedId(null);
+    fetchEvents();
   };
 
-  const todayStr = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}-${String(today.getDate()).padStart(2,"0")}`;
+  const typeFilters = ["all",...EVENT_TYPES];
 
   return (
-    <div className="space-y-5">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-secondary">Calendario Contable</h2>
-          <p className="text-muted-foreground text-sm mt-1">Eventos, vencimientos de facturas y recordatorios.</p>
+    <div className="space-y-0">
+      {/* ─── Top bar ─── */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <button onClick={()=>{ setWeekStart(getMondayOf(today)); setSelectedDay(toDateStr(today)); }}
+            className="px-3 py-1.5 text-xs font-semibold border border-border rounded-lg hover:bg-secondary/5 text-foreground transition-colors">
+            Hoy
+          </button>
+          <button onClick={()=>setWeekStart(d=>addDays(d,-7))} className="p-1.5 hover:bg-secondary/10 rounded-lg text-muted-foreground"><ChevronLeft size={16}/></button>
+          <button onClick={()=>setWeekStart(d=>addDays(d,7))}  className="p-1.5 hover:bg-secondary/10 rounded-lg text-muted-foreground"><ChevronRight size={16}/></button>
+          <span className="text-sm font-semibold text-foreground">
+            {DAYS_ES[weekStart.getDay()]} {weekStart.getDate()} — {DAYS_ES[addDays(weekStart,6).getDay()]} {addDays(weekStart,6).getDate()} {MONTHS_ES[weekStart.getMonth()]} {weekStart.getFullYear()}
+          </span>
         </div>
-        <button
-          onClick={() => { setShowNewEvent(true); setForm(f => ({ ...f, date: todayStr })); }}
-          className="flex items-center gap-2 bg-primary text-white px-4 py-1.5 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
-        >
-          <Plus size={16} /> Nuevo Evento
+        <button onClick={()=>{ setShowModal(true); setForm(f=>({...f,date:selectedDay||toDateStr(today)})); }}
+          className="flex items-center gap-1.5 bg-primary text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors">
+          <Plus size={15}/> Nuevo Evento
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        {/* Calendar Grid */}
-        <div className="lg:col-span-2 bg-background border border-border rounded-xl overflow-hidden shadow-sm">
-          {/* Month Nav */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-            <button onClick={prevMonth} className="p-1.5 hover:bg-secondary/10 rounded-lg transition-colors text-muted-foreground hover:text-foreground"><ChevronLeft size={18} /></button>
-            <h3 className="font-bold text-foreground text-base">{MONTHS_ES[currentMonth]} {currentYear}</h3>
-            <button onClick={nextMonth} className="p-1.5 hover:bg-secondary/10 rounded-lg transition-colors text-muted-foreground hover:text-foreground"><ChevronRight size={18} /></button>
-          </div>
-
-          {/* Day Headers */}
-          <div className="grid grid-cols-7 border-b border-border">
-            {DAYS.map(d => (
-              <div key={d} className="py-2 text-center text-xs font-semibold text-muted-foreground">{d}</div>
-            ))}
-          </div>
-
-          {/* Cells */}
-          <div className="grid grid-cols-7">
-            {cells.map((day, idx) => {
-              if (!day) return <div key={idx} className="h-24 border-b border-r border-border bg-secondary/3" />;
-              const dateStr = getDateStr(day);
-              const dayEvents = eventsForDay(day);
-              const isToday = dateStr === todayStr;
-              const isSelected = dateStr === selectedDay;
-              return (
-                <div
-                  key={idx}
-                  onClick={() => setSelectedDay(dateStr === selectedDay ? null : dateStr)}
-                  className={cn(
-                    "h-24 border-b border-r border-border p-1.5 cursor-pointer transition-colors overflow-hidden",
-                    isSelected ? "bg-primary/5" : "hover:bg-secondary/5"
-                  )}
-                >
-                  <div className={cn(
-                    "w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold mb-1",
-                    isToday ? "bg-primary text-white" : "text-foreground"
-                  )}>{day}</div>
-                  <div className="space-y-0.5">
-                    {dayEvents.slice(0, 2).map((ev, i) => (
-                      <div key={i} className={cn("text-[10px] font-medium px-1 py-0.5 rounded border flex items-center gap-0.5 truncate", EVENT_STYLES[ev.type] || EVENT_STYLES.general)}>
-                        {EVENT_ICONS[ev.type] || EVENT_ICONS.general}
-                        <span className="truncate">{ev.title}</span>
-                      </div>
-                    ))}
-                    {dayEvents.length > 2 && (
-                      <div className="text-[10px] text-muted-foreground pl-1">+{dayEvents.length - 2} más</div>
-                    )}
-                  </div>
+      {/* ─── Week grid header ─── */}
+      <div className="bg-background border border-border rounded-xl overflow-hidden mb-3">
+        <div className="grid grid-cols-7 border-b border-border">
+          {weekDays.map(d=>{
+            const ds = toDateStr(d);
+            const isToday = ds===toDateStr(today);
+            const isSel = ds===selectedDay;
+            const total = countsByDay(ds,"all");
+            return (
+              <button key={ds} onClick={()=>setSelectedDay(isSel?null:ds)}
+                className={cn("p-3 text-left border-r border-border last:border-0 transition-colors hover:bg-secondary/5",
+                  isSel?"bg-primary/5 border-b-2 border-b-primary":"")}>
+                <div className="flex items-center gap-1.5 mb-2">
+                  <span className="text-xs font-medium text-muted-foreground">{DAYS_ES[(d.getDay()+0)%7]}</span>
+                  <span className={cn("text-sm font-bold", isToday?"w-6 h-6 bg-primary text-white rounded-full flex items-center justify-center text-xs":"text-foreground")}>
+                    {isToday ? d.getDate() : d.getDate()}
+                  </span>
                 </div>
-              );
-            })}
-          </div>
+                {Object.entries(TYPE_CFG).map(([type, cfg])=>{
+                  const n = countsByDay(ds, type);
+                  if(!n) return null;
+                  return (
+                    <div key={type} className="flex items-center gap-1 mb-0.5">
+                      <span className={cn("text-[10px] font-semibold", cfg.color, cfg.urgent?"font-bold":"")}>{cfg.label}</span>
+                      <span className={cn("text-[10px] font-bold", cfg.urgent?"text-red-700":"text-muted-foreground")}>{n}</span>
+                    </div>
+                  );
+                })}
+                {total===0 && <span className="text-[10px] text-muted-foreground/50">Sin eventos</span>}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Right Panel */}
-        <div className="space-y-4">
-          {/* Legend */}
-          <div className="bg-background border border-border rounded-xl p-4 shadow-sm">
-            <h4 className="text-sm font-semibold text-foreground mb-3">Leyenda</h4>
-            <div className="space-y-2">
-              {[
-                { type: "invoice_due", label: "Vencimiento Factura" },
-                { type: "payment", label: "Pago" },
-                { type: "general", label: "Evento General" },
-                { type: "meeting", label: "Reunión" },
-                { type: "reminder", label: "Recordatorio" },
-              ].map(({ type, label }) => (
-                <div key={type} className="flex items-center gap-2">
-                  <div className={cn("w-3 h-3 rounded-full border", EVENT_STYLES[type]?.split(" ").filter(c => c.startsWith("bg-"))[0])} />
-                  <span className="text-xs text-muted-foreground">{label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+        {/* ─── Filter tabs ─── */}
+        <div className="flex gap-0 border-b border-border overflow-x-auto">
+          {typeFilters.map(t=>(
+            <button key={t} onClick={()=>setFilter(t)}
+              className={cn("px-4 py-2.5 text-xs font-semibold whitespace-nowrap transition-colors border-b-2",
+                filter===t
+                  ? t==="Tributario" ? "border-red-500 text-red-700 bg-red-50/50" : "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground")}>
+              {t==="all" ? "Todos" : TYPE_CFG[t]?.label || t}
+            </button>
+          ))}
+        </div>
 
-          {/* Selected Day Events */}
-          {selectedDay && (
-            <div className="bg-background border border-border rounded-xl p-4 shadow-sm">
-              <h4 className="text-sm font-semibold text-foreground mb-3">
-                {selectedDay} — {selectedEvents.length} evento(s)
-              </h4>
-              {selectedEvents.length === 0 ? (
-                <p className="text-xs text-muted-foreground">Sin eventos este día.</p>
-              ) : (
-                <div className="space-y-2">
-                  {selectedEvents.map((ev) => (
-                    <div key={ev.id} className={cn("p-3 rounded-lg border text-xs", EVENT_STYLES[ev.type] || EVENT_STYLES.general)}>
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="font-semibold flex items-center gap-1">{EVENT_ICONS[ev.type]}{ev.title}</div>
-                        {!ev.virtual && (
-                          <button onClick={() => handleDelete(ev.id)} className="opacity-60 hover:opacity-100 transition-opacity shrink-0">
-                            <Trash2 size={12} />
-                          </button>
-                        )}
-                      </div>
-                      {ev.description && <p className="mt-1 opacity-80">{ev.description}</p>}
-                      {ev.virtual && <span className="mt-1 inline-block opacity-60 italic">Auto — vencimiento de factura</span>}
-                    </div>
-                  ))}
-                </div>
-              )}
+        {/* ─── Event list ─── */}
+        <div className="max-h-[520px] overflow-y-auto">
+          {Object.keys(grouped).length===0 ? (
+            <div className="py-12 text-center text-muted-foreground text-sm">
+              {selectedDay ? "Sin eventos este día." : "Sin eventos esta semana."}
             </div>
-          )}
+          ) : Object.entries(grouped).map(([dateStr, dayEvents])=>{
+            const d = new Date(dateStr+"T00:00:00");
+            return (
+              <div key={dateStr}>
+                {/* Day header */}
+                <div className="sticky top-0 bg-secondary/5 border-b border-border px-4 py-2 z-10">
+                  <span className="text-xs font-bold text-secondary uppercase tracking-wider">
+                    {DAYS_ES[d.getDay()]}, {d.getDate()} de {MONTHS_ES[d.getMonth()]} {d.getFullYear()}
+                  </span>
+                </div>
 
-          {/* Upcoming events */}
-          {!selectedDay && (
-            <div className="bg-background border border-border rounded-xl p-4 shadow-sm">
-              <h4 className="text-sm font-semibold text-foreground mb-3">Próximos en este mes</h4>
-              {events.length === 0 ? (
-                <p className="text-xs text-muted-foreground">Sin eventos este mes.</p>
-              ) : (
-                <div className="space-y-2 max-h-72 overflow-y-auto">
-                  {events.slice(0, 10).map(ev => (
-                    <div key={ev.id} className={cn("px-3 py-2 rounded-lg border text-xs flex items-start gap-2", EVENT_STYLES[ev.type] || EVENT_STYLES.general)}>
-                      <div className="mt-0.5 shrink-0">{EVENT_ICONS[ev.type]}</div>
-                      <div>
-                        <p className="font-semibold">{ev.title}</p>
-                        <p className="opacity-70">{ev.date}</p>
-                      </div>
+                {dayEvents.map(ev=>{
+                  const cfg = TYPE_CFG[ev.type] || TYPE_CFG.general;
+                  const isExpanded = expandedId===String(ev.id);
+                  const priority = (ev.priority || "Media") as Priority;
+                  const isUrgent = ev.type==="Tributario";
+                  return (
+                    <div key={ev.id}
+                      className={cn("border-b border-border last:border-0",
+                        isUrgent ? "border-l-4 border-l-red-500 bg-red-50/30" : `border-l-4 ${cfg.border}`)}>
+                      {/* Row */}
+                      <button className="w-full text-left px-4 py-3 hover:bg-secondary/5 transition-colors"
+                        onClick={()=>setExpandedId(isExpanded?null:String(ev.id))}>
+                        <div className="flex items-center gap-3">
+                          {/* Time */}
+                          <span className="text-xs text-muted-foreground font-mono w-10 shrink-0">
+                            {ev.time||"—"}
+                          </span>
+                          {/* Type icon */}
+                          <span className={cn("shrink-0", cfg.color)}>{cfg.icon}</span>
+                          {/* Title */}
+                          <span className={cn("flex-1 text-sm font-medium", isUrgent?"text-red-800":"text-foreground")}>
+                            {isUrgent && <AlertTriangle size={11} className="inline mr-1 text-red-600"/>}
+                            {ev.title}
+                          </span>
+                          {/* Type badge */}
+                          <span className={cn("hidden sm:inline-flex px-2 py-0.5 rounded-full text-[10px] font-semibold border", cfg.bg, cfg.color, cfg.urgent?"border-red-300":"border-transparent")}>
+                            {cfg.label}
+                          </span>
+                          {/* Priority badge */}
+                          {priority==="Alta" && (
+                            <span className={cn("px-1.5 py-0.5 rounded text-[10px] font-bold border", PRIORITY_CFG[priority].cls)}>
+                              {PRIORITY_CFG[priority].label}
+                            </span>
+                          )}
+                          {/* Virtual badge */}
+                          {ev.virtual && <span className="text-[10px] text-muted-foreground italic">auto</span>}
+                          {/* Expand icon */}
+                          {isExpanded ? <ChevronUp size={14} className="text-muted-foreground"/> : <ChevronDown size={14} className="text-muted-foreground"/>}
+                        </div>
+                      </button>
+
+                      {/* Expanded details */}
+                      {isExpanded && (
+                        <div className={cn("px-4 pb-4 pt-1 space-y-3 border-t", cfg.bg.replace("bg-","bg-").replace("/50",""))}>
+                          {/* Priority full row */}
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <span className={cn("px-2 py-0.5 rounded-full text-xs font-bold border", PRIORITY_CFG[priority].cls)}>
+                              Prioridad: {PRIORITY_CFG[priority].label}
+                            </span>
+                            {isUrgent && (
+                              <span className="flex items-center gap-1 text-xs font-bold text-red-700 bg-red-100 border border-red-300 px-2 py-0.5 rounded-full">
+                                <AlertTriangle size={11}/> Evento Tributario — Acción requerida ante la DIAN
+                              </span>
+                            )}
+                          </div>
+                          {/* Description */}
+                          {ev.description && (
+                            <p className="text-sm text-muted-foreground leading-relaxed">{ev.description}</p>
+                          )}
+                          {/* Linked doc */}
+                          {ev.linked_type==="invoice" && (
+                            <div className="flex items-center gap-2 text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+                              <FileText size={12}/> Vinculado a factura ID #{ev.linked_id}
+                            </div>
+                          )}
+                          {/* Actions */}
+                          {!ev.virtual && (
+                            <div className="flex gap-2 pt-1">
+                              <button onClick={()=>handleDelete(ev.id)}
+                                className="flex items-center gap-1.5 text-xs text-destructive hover:bg-destructive/10 px-3 py-1.5 rounded-lg border border-destructive/20 transition-colors">
+                                <Trash2 size={12}/> Eliminar
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+                  );
+                })}
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* New Event Modal */}
-      {showNewEvent && (
+      {/* ─── New Event Modal ─── */}
+      {showModal && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-card w-full max-w-md rounded-2xl border border-border shadow-2xl">
             <div className="flex items-center justify-between p-5 border-b border-border">
               <h3 className="font-bold text-foreground">Nuevo Evento</h3>
-              <button onClick={() => setShowNewEvent(false)} className="p-1.5 hover:bg-secondary/10 rounded-full"><X size={18} /></button>
+              <button onClick={()=>setShowModal(false)} className="p-1.5 hover:bg-secondary/10 rounded-full"><X size={18}/></button>
             </div>
             <div className="p-5 space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-1">Título *</label>
-                <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
+                <input value={form.title} onChange={e=>setForm(f=>({...f,title:e.target.value}))}
                   className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-                  placeholder="Ej. Reunión con cliente" />
+                  placeholder="Ej. Declaración Renta" />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm font-medium mb-1">Tipo</label>
-                  <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
+                  <select value={form.type} onChange={e=>setForm(f=>({...f,type:e.target.value as EventType}))}
                     className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none text-foreground">
-                    <option value="general">General</option>
-                    <option value="meeting">Reunión</option>
-                    <option value="payment">Pago</option>
-                    <option value="reminder">Recordatorio</option>
+                    {EVENT_TYPES.map(t=><option key={t} value={t}>{TYPE_CFG[t]?.label||t}</option>)}
                   </select>
                 </div>
                 <div>
+                  <label className="block text-sm font-medium mb-1">Prioridad</label>
+                  <select value={form.priority} onChange={e=>setForm(f=>({...f,priority:e.target.value as Priority}))}
+                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none text-foreground">
+                    {PRIORITIES.map(p=><option key={p}>{p}</option>)}
+                  </select>
+                </div>
+              </div>
+              {form.type==="Tributario" && (
+                <div className="flex items-center gap-2 text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  <AlertTriangle size={13}/> Este evento se marcará como <strong>ALTA PRIORIDAD</strong> automáticamente
+                </div>
+              )}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Fecha *</label>
+                  <input type="date" value={form.date} onChange={e=>setForm(f=>({...f,date:e.target.value}))}
+                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"/>
+                </div>
+                <div>
                   <label className="block text-sm font-medium mb-1">Hora</label>
-                  <input type="time" value={form.time} onChange={e => setForm(f => ({ ...f, time: e.target.value }))}
-                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none" />
+                  <input type="time" value={form.time} onChange={e=>setForm(f=>({...f,time:e.target.value}))}
+                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none"/>
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Fecha *</label>
-                <input type="date" value={form.date} onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none" />
-              </div>
-              <div>
                 <label className="block text-sm font-medium mb-1">Descripción</label>
-                <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
-                  rows={2} className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none resize-none" />
+                <textarea value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))}
+                  rows={2} className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none resize-none"/>
               </div>
             </div>
             <div className="p-5 border-t border-border flex justify-end gap-3 bg-secondary/5 rounded-b-2xl">
-              <button onClick={() => setShowNewEvent(false)} className="px-4 py-2 text-sm border border-border rounded-lg hover:bg-background transition-colors text-foreground">Cancelar</button>
-              <button onClick={handleSave} disabled={isSaving || !form.title || !form.date}
+              <button onClick={()=>setShowModal(false)} className="px-4 py-2 text-sm border border-border rounded-lg hover:bg-background transition-colors text-foreground">Cancelar</button>
+              <button onClick={handleSave} disabled={isSaving||!form.title||!form.date}
                 className="px-5 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-60">
-                {isSaving ? "Guardando..." : "Guardar"}
+                {isSaving?"Guardando...":"Guardar"}
               </button>
             </div>
           </div>

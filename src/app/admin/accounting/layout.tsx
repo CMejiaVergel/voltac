@@ -18,14 +18,15 @@ export default function AccountingLayout({ children }: { children: React.ReactNo
   }, []);
 
   const navItems = [
-    { label: "Dashboard", href: "/admin/accounting", icon: <LayoutDashboard size={18} />, exact: true },
+    { label: "Resumen",   href: "/admin/accounting",                     icon: <LayoutDashboard size={18} />, exact: true },
+    { label: "Dashboard", href: "/admin/accounting/dashboard",            icon: <BarChart size={18} /> },
     { label: "Ingresos & Egresos", href: "/admin/accounting/ingresos-egresos", icon: <ArrowLeftRight size={18} /> },
-    { label: "Facturación", href: "/admin/accounting/facturacion", icon: <FileText size={18} /> },
-    { label: "Cotizaciones", href: "/admin/accounting/cotizaciones", icon: <FileSignature size={18} /> },
+    { label: "Facturación", href: "/admin/accounting/facturacion",        icon: <FileText size={18} /> },
+    { label: "Cotizaciones", href: "/admin/accounting/cotizaciones",      icon: <FileSignature size={18} /> },
     { label: "Clientes & Proveedores", href: "/admin/accounting/clientes-proveedores", icon: <Users size={18} /> },
-    { label: "Calendario", href: "/admin/accounting/calendario", icon: <Calendar size={18} /> },
-    { label: "Reportes", href: "/admin/accounting/reportes", icon: <BarChart size={18} /> },
-    { label: "Configuración", href: "/admin/accounting/configuracion", icon: <Settings size={18} />, role: ["SuperAdmin"] },
+    { label: "Calendario", href: "/admin/accounting/calendario",          icon: <Calendar size={18} /> },
+    { label: "Reportes",   href: "/admin/accounting/reportes",            icon: <BarChart size={18} /> },
+    { label: "Configuración", href: "/admin/accounting/configuracion",    icon: <Settings size={18} />, role: ["SuperAdmin"] },
   ];
 
   if (!role) return <div>Cargando módulo contable...</div>;
