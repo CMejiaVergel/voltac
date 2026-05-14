@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
-import { X, Loader2, Plus, Trash2 } from "lucide-react";
+import { X, Loader2, Plus, Trash2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const TAX_RATES: Record<string, number> = { "1": 19, "2": 5, "3": 0 };
@@ -45,6 +45,8 @@ export function QuoteModal({ isOpen, onClose, onSuccess, initialData }: Props) {
   const isEditing = !!initialData;
   const [clients, setClients] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const submittedRef = useRef(false); // prevent double-submit
   const defaultItem: QuoteItem = { description: "", quantity: 1, unit_price: 0, discount_pct: 0, tax_id: "" };
 
   const { register, handleSubmit, control, watch, reset } = useForm<QuoteFormData>({
@@ -75,7 +77,7 @@ export function QuoteModal({ isOpen, onClose, onSuccess, initialData }: Props) {
   const total = subtotal + taxTotal - globalDiscount;
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen) { submittedRef.current = false; setSaveError(""); return; }
     fetch("/api/accounting/clients").then(r => r.json()).then(j => {
       if (j.success) setClients(j.data.filter((c: any) => c.is_active));
     });
@@ -89,16 +91,32 @@ export function QuoteModal({ isOpen, onClose, onSuccess, initialData }: Props) {
   if (!isOpen) return null;
 
   const onSubmit = async (data: QuoteFormData) => {
+    // Prevent double-submit (protects against "error but saved" scenario)
+    if (submittedRef.current || isSubmitting) return;
+    submittedRef.current = true;
     setIsSubmitting(true);
+    setSaveError("");
     const payload = { ...data, subtotal, tax_total: taxTotal, total, discount: Number(data.discount) || 0 };
     const url = isEditing ? `/api/accounting/quotes/${initialData.id}` : "/api/accounting/quotes";
     const method = isEditing ? "PUT" : "POST";
     try {
       const res = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-      if (res.ok) { onSuccess(); onClose(); }
-      else alert("Error al guardar la cotización.");
-    } catch { alert("Error de conexión."); }
-    finally { setIsSubmitting(false); }
+      const json = await res.json().catch(() => ({}));
+      if (res.ok || json?.success) {
+        onSuccess();
+        onClose();
+      } else {
+        // Show inline error but DON'T reset submittedRef (prevents duplicate on retry)
+        setSaveError(json?.error || "Error al guardar. Recarga la página para verificar.");
+        setIsSubmitting(false);
+        // Allow retry only for true validation errors (4xx), not server errors
+        if (res.status < 500) submittedRef.current = false;
+      }
+    } catch {
+      setSaveError("Error de conexión. Verifica la red e intenta de nuevo.");
+      setIsSubmitting(false);
+      submittedRef.current = false;
+    }
   };
 
   return (
@@ -207,9 +225,18 @@ export function QuoteModal({ isOpen, onClose, onSuccess, initialData }: Props) {
             </div>
           </div>
 
+          {/* Error inline */}
+          {saveError && (
+            <div className="mx-6 mb-4 flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl">
+              <AlertCircle size={15} className="shrink-0 mt-0.5" />
+              <span>{saveError}</span>
+            </div>
+          )}
+
           <div className="p-6 border-t border-border flex justify-end gap-3 bg-secondary/5 rounded-b-2xl">
             <button onClick={onClose} type="button" className="px-4 py-2 text-sm font-medium border border-border rounded-lg hover:bg-background transition-colors text-foreground">Cancelar</button>
-            <button type="submit" disabled={isSubmitting} className="flex items-center gap-2 px-6 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-70">
+            <button type="submit" disabled={isSubmitting || (submittedRef.current && !saveError)}
+              className="flex items-center gap-2 px-6 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-70">
               {isSubmitting && <Loader2 size={16} className="animate-spin" />} Guardar Cotización
             </button>
           </div>

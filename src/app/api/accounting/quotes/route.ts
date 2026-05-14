@@ -47,12 +47,26 @@ export async function POST(req: Request) {
     );
 
     const quoteId = result.lastID;
+
+    // Use a transaction for items to ensure atomicity
     if (data.items && data.items.length > 0) {
-      for (const item of data.items) {
-        await db.run(
-          `INSERT INTO acc_quote_items (quote_id, description, quantity, unit_price, discount_pct, tax_id, total) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [quoteId, item.description, item.quantity, item.unit_price, item.discount_pct || 0, item.tax_id || null, item.total]
-        );
+      await db.run("BEGIN TRANSACTION");
+      try {
+        for (const item of data.items) {
+          const qty   = parseFloat(item.quantity)    || 1;
+          const price = parseFloat(item.unit_price)  || 0;
+          const dto   = parseFloat(item.discount_pct)|| 0;
+          // Calculate total server-side (not trusted from client)
+          const itemTotal = qty * price * (1 - dto / 100);
+          await db.run(
+            `INSERT INTO acc_quote_items (quote_id, description, quantity, unit_price, discount_pct, tax_id, total) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [quoteId, item.description || "", qty, price, dto, item.tax_id || null, itemTotal]
+          );
+        }
+        await db.run("COMMIT");
+      } catch (itemError) {
+        await db.run("ROLLBACK");
+        throw itemError;
       }
     }
 
