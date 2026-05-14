@@ -249,6 +249,26 @@ export async function getDB() {
       await db.exec(q);
     }
 
+    // Migrate acc_quotes — add columns that may not exist on pre-existing DBs
+    const accQuoteCols = await db.all("PRAGMA table_info(acc_quotes)");
+    const accQuoteColNames = accQuoteCols.map((c: any) => c.name);
+    const accQuoteMigrations: string[] = [];
+    if (!accQuoteColNames.includes('converted_invoice_id'))
+      accQuoteMigrations.push("ALTER TABLE acc_quotes ADD COLUMN converted_invoice_id INTEGER;");
+    if (!accQuoteColNames.includes('version'))
+      accQuoteMigrations.push("ALTER TABLE acc_quotes ADD COLUMN version INTEGER DEFAULT 1;");
+    for (const q of accQuoteMigrations) { await db.exec(q); }
+
+    // Migrate acc_invoices — ensure notes and terms columns exist
+    const accInvCols = await db.all("PRAGMA table_info(acc_invoices)");
+    const accInvColNames = accInvCols.map((c: any) => c.name);
+    const accInvMigrations: string[] = [];
+    if (!accInvColNames.includes('notes'))
+      accInvMigrations.push("ALTER TABLE acc_invoices ADD COLUMN notes TEXT;");
+    if (!accInvColNames.includes('terms'))
+      accInvMigrations.push("ALTER TABLE acc_invoices ADD COLUMN terms TEXT;");
+    for (const q of accInvMigrations) { await db.exec(q); }
+
     const keys = await db.all('SELECT * FROM api_keys');
     if (keys.length === 0) {
       await db.exec(`INSERT INTO api_keys (key, name) VALUES ('voltac_sk_default123', 'Default Key')`);
