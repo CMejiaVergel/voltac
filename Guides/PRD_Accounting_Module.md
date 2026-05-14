@@ -41,7 +41,7 @@
 - [x] Gestión de estados de factura
 - [x] Registro de pagos parciales y totales (API y actualización automática de estado)
 - [ ] Historial de pagos por factura (UI)
-- [ ] Generación y exportación de factura a PDF con membrete Voltac
+- [x] Generación y exportación de factura a PDF con membrete Voltac
 - [ ] Envío de factura por correo (via webhook n8n)
 - [x] Formulario de registro de factura recibida (proveedor)
 - [ ] Adjuntar PDF de factura recibida
@@ -56,7 +56,7 @@
 - [x] Vista de lista con tabla
 - [x] Conversión 1-clic de cotización a factura
 - [x] Actualización de estado desde Kanban
-- [ ] Generación de PDF de cotización con membrete
+- [x] Generación de PDF de cotización con membrete
 - [ ] Envío por correo (via webhook n8n)
 
 ### Fase 5 — Calendario

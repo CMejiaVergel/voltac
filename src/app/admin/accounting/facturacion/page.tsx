@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Plus, Search, Download, Edit, Trash2, FileText, CreditCard, X, Loader2 } from "lucide-react";
+import { Plus, Search, Download, Edit, Trash2, FileText, CreditCard, X, Loader2, FileDown } from "lucide-react";
 import { InvoiceModal } from "./components/InvoiceModal";
 import { cn } from "@/lib/utils";
 
@@ -176,6 +176,10 @@ export default function FacturacionPage() {
                 </td>
                 <td className="px-4 py-3 text-right">
                   <div className="flex items-center justify-end gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <a href={`/api/accounting/invoices/${inv.id}/pdf`} target="_blank" rel="noreferrer"
+                      title="Descargar PDF" className="p-1.5 hover:bg-blue-100 rounded-lg text-blue-600 transition-colors">
+                      <FileDown size={15} />
+                    </a>
                     {inv.status !== "Pagada" && activeTab === "emitted" && (
                       <button onClick={() => openPayPanel(inv)} title="Registrar pago" className="p-1.5 hover:bg-green-100 rounded-lg text-green-600 transition-colors">
                         <CreditCard size={15} />

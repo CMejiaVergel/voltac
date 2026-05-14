@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Plus, Search, Edit, Trash2, ArrowRight, FileCheck } from "lucide-react";
+import { Plus, Search, Edit, Trash2, ArrowRight, FileCheck, FileDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { QuoteModal } from "./components/QuoteModal";
 
@@ -185,6 +185,10 @@ export default function CotizacionesPage() {
                           <ArrowRight size={15} />
                         </button>
                       )}
+                      <a href={`/api/accounting/quotes/${q.id}/pdf`} target="_blank" rel="noreferrer"
+                        title="Descargar PDF" className="p-1.5 hover:bg-blue-100 rounded-lg text-blue-600 transition-colors">
+                        <FileDown size={15} />
+                      </a>
                       <button onClick={() => { setEditingItem(q); setIsModalOpen(true); }} className="p-1.5 hover:bg-secondary/10 rounded-lg text-secondary transition-colors"><Edit size={15} /></button>
                       <button onClick={() => handleDelete(q.id)} className="p-1.5 hover:bg-destructive/10 rounded-lg text-destructive transition-colors"><Trash2 size={15} /></button>
                     </div>
