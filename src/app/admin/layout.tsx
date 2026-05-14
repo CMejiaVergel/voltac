@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { LayoutDashboard, Users, FolderKanban, Settings, LogOut, BarChart3, Eye, Newspaper, Menu, X } from "lucide-react";
+import { LayoutDashboard, Users, FolderKanban, Settings, LogOut, BarChart3, Eye, Newspaper, Menu, X, Calculator } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -38,6 +38,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { label: "Proyectos", icon: <FolderKanban size={20}/>, href: "/admin/proyectos" },
     { label: "Noticias (Blog)", icon: <Newspaper size={20}/>, href: "/admin/news" },
     { label: "Analytics", icon: <BarChart3 size={20}/>, href: "/admin/analytics" },
+    { label: "Accounting", icon: <Calculator size={20}/>, href: "/admin/accounting" },
     { label: "Preview", icon: <Eye size={20}/>, href: "/admin/preview" },
     { label: "Configuración", icon: <Settings size={20}/>, href: "/admin/configuracion" },
   ];
