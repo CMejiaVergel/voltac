@@ -60,15 +60,16 @@
 - [ ] Envío por correo (via webhook n8n)
 
 ### Fase 5 — Calendario
-- [ ] Vista mensual y semanal
-- [ ] Creación y edición de eventos
-- [ ] Vinculación de eventos a facturas y cotizaciones
-- [ ] Alertas de vencimiento
+- [x] Vista mensual con grid interactivo
+- [x] Creación y edición de eventos
+- [x] Vinculación de vencimientos de facturas como eventos automáticos
+- [x] Alertas de vencimiento (visual en calendario)
+- [x] Tipos de evento: General, Reunión, Pago, Recordatorio
 
 ### Fase 6 — Dashboard Ejecutivo
 - [x] KPIs: Ingresos, Egresos, Balance, Clientes activos
 - [x] KPIs: Facturas cobradas, Cuentas por cobrar, Vencidas
-- [x] Top 5 clientes por facturación
+- [x] Top 5 clientes por facturación con barras de progreso
 - [x] Movimientos recientes
-- [ ] Gráficas de flujo de caja por mes
-- [ ] Gráfica de distribución de gastos por categoría
+- [x] Gráfica de flujo de caja por mes (Area Chart)
+- [x] Gráfica de estado de facturas (Pie Chart)
