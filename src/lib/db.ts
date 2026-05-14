@@ -209,6 +209,30 @@ export async function getDB() {
         response_code INTEGER,
         error_message TEXT
       );
+
+      CREATE TABLE IF NOT EXISTS acc_payments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        invoice_id INTEGER NOT NULL,
+        date DATETIME NOT NULL,
+        amount REAL NOT NULL,
+        method TEXT NOT NULL,
+        reference TEXT,
+        notes TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(invoice_id) REFERENCES acc_invoices(id) ON DELETE CASCADE
+      );
+
+      CREATE TABLE IF NOT EXISTS acc_quote_items (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        quote_id INTEGER NOT NULL,
+        description TEXT NOT NULL,
+        quantity REAL NOT NULL,
+        unit_price REAL NOT NULL,
+        discount_pct REAL DEFAULT 0,
+        tax_id INTEGER,
+        total REAL NOT NULL,
+        FOREIGN KEY(quote_id) REFERENCES acc_quotes(id) ON DELETE CASCADE
+      );
     `);
 
     const columns = await db.all("PRAGMA table_info(quotes)");

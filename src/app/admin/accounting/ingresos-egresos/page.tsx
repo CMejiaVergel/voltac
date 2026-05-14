@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Plus, Search, Filter, Download, Edit, Trash2, TrendingUp, TrendingDown } from "lucide-react";
+import { Plus, Search, Download, Edit, Trash2, TrendingUp, TrendingDown } from "lucide-react";
 import { TransactionModal } from "./components/TransactionModal";
 import { cn } from "@/lib/utils";
 
@@ -23,10 +23,19 @@ export default function IngresosEgresosPage() {
   const [editingItem, setEditingItem] = useState<any | null>(null);
   const [modalType, setModalType] = useState<"Ingreso" | "Egreso">("Ingreso");
 
+  const handleExport = () => {
+    const url = filterType
+      ? `/api/accounting/export?entity=transactions&type=${filterType}`
+      : `/api/accounting/export?entity=transactions`;
+    window.open(url, "_blank");
+  };
+
   const fetchTransactions = async () => {
     setIsLoading(true);
     try {
-      const url = filterType ? `/api/accounting/transactions?type=${filterType}` : "/api/accounting/transactions";
+      const url = filterType
+        ? `/api/accounting/transactions?type=${filterType}`
+        : "/api/accounting/transactions";
       const res = await fetch(url);
       const json = await res.json();
       if (json.success) setTransactions(json.data.filter((t: any) => t.status !== "Anulado"));
@@ -49,12 +58,12 @@ export default function IngresosEgresosPage() {
     setIsModalOpen(true);
   };
 
-  const filtered = transactions.filter(t =>
+  const filtered = transactions.filter((t) =>
     t.description?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const totalIngresos = filtered.filter(t => t.type === "Ingreso").reduce((a, t) => a + t.amount, 0);
-  const totalEgresos = filtered.filter(t => t.type === "Egreso").reduce((a, t) => a + t.amount, 0);
+  const totalIngresos = filtered.filter((t) => t.type === "Ingreso").reduce((a, t) => a + t.amount, 0);
+  const totalEgresos = filtered.filter((t) => t.type === "Egreso").reduce((a, t) => a + t.amount, 0);
   const balance = totalIngresos - totalEgresos;
 
   return (
@@ -65,8 +74,8 @@ export default function IngresosEgresosPage() {
           <p className="text-muted-foreground text-sm mt-1">Registro centralizado de todos los movimientos financieros.</p>
         </div>
         <div className="flex gap-2">
-          <button className="flex items-center gap-2 px-3 py-1.5 border border-border rounded-lg text-sm font-medium hover:bg-secondary/5 transition-colors text-foreground">
-            <Download size={16} /><span className="hidden sm:inline">Exportar</span>
+          <button onClick={handleExport} className="flex items-center gap-2 px-3 py-1.5 border border-border rounded-lg text-sm font-medium hover:bg-secondary/5 transition-colors text-foreground">
+            <Download size={16} /><span className="hidden sm:inline">Exportar Excel</span>
           </button>
           <button onClick={() => openModal("Egreso")} className="flex items-center gap-2 bg-red-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:bg-red-600 transition-colors">
             <TrendingDown size={16} /><span className="hidden sm:inline">Egreso</span>
@@ -101,7 +110,7 @@ export default function IngresosEgresosPage() {
             className="w-full pl-9 pr-4 py-2 bg-background border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20" />
         </div>
         <div className="flex gap-2">
-          {(["", "Ingreso", "Egreso"] as const).map(t => (
+          {(["", "Ingreso", "Egreso"] as const).map((t) => (
             <button key={t} onClick={() => setFilterType(t)}
               className={cn("px-3 py-2 rounded-lg text-sm font-medium transition-colors border",
                 filterType === t ? "bg-secondary text-white border-secondary" : "border-border text-muted-foreground hover:bg-secondary/5")}>
@@ -130,7 +139,7 @@ export default function IngresosEgresosPage() {
               <tr><td colSpan={7} className="px-4 py-6 text-center text-muted-foreground">Cargando...</td></tr>
             ) : filtered.length === 0 ? (
               <tr><td colSpan={7} className="px-4 py-6 text-center text-muted-foreground">No hay movimientos registrados.</td></tr>
-            ) : filtered.map(tx => (
+            ) : filtered.map((tx) => (
               <tr key={tx.id} className="border-b border-border hover:bg-secondary/5 transition-colors group">
                 <td className="px-4 py-3">
                   <div className={cn("flex items-center gap-1.5 font-medium w-fit px-2 py-1 rounded-full text-xs",

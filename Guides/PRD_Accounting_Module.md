@@ -39,12 +39,36 @@
 - [x] Formulario de creación de factura emitida (ítems, cálculos, impuestos, descuentos)
 - [x] Numeración automática de facturas
 - [x] Gestión de estados de factura
-- [ ] Registro de pagos parciales y totales
-- [ ] Historial de pagos por factura
+- [x] Registro de pagos parciales y totales (API y actualización automática de estado)
+- [ ] Historial de pagos por factura (UI)
 - [ ] Generación y exportación de factura a PDF con membrete Voltac
 - [ ] Envío de factura por correo (via webhook n8n)
 - [x] Formulario de registro de factura recibida (proveedor)
 - [ ] Adjuntar PDF de factura recibida
 - [ ] Alertas de vencimiento automáticas
 - [x] Listado con filtros avanzados (ambos tipos)
-- [ ] Exportación de listado a Excel
+- [x] Exportación de listado a Excel
+
+### Fase 4 — Cotizaciones
+- [x] Formulario de creación con ítems, cálculos e impuestos
+- [x] Numeración automática (COT-YYYY-NNNN)
+- [x] Vista Kanban por estado (Borrador, Enviada, Aceptada, Rechazada, Vencida)
+- [x] Vista de lista con tabla
+- [x] Conversión 1-clic de cotización a factura
+- [x] Actualización de estado desde Kanban
+- [ ] Generación de PDF de cotización con membrete
+- [ ] Envío por correo (via webhook n8n)
+
+### Fase 5 — Calendario
+- [ ] Vista mensual y semanal
+- [ ] Creación y edición de eventos
+- [ ] Vinculación de eventos a facturas y cotizaciones
+- [ ] Alertas de vencimiento
+
+### Fase 6 — Dashboard Ejecutivo
+- [x] KPIs: Ingresos, Egresos, Balance, Clientes activos
+- [x] KPIs: Facturas cobradas, Cuentas por cobrar, Vencidas
+- [x] Top 5 clientes por facturación
+- [x] Movimientos recientes
+- [ ] Gráficas de flujo de caja por mes
+- [ ] Gráfica de distribución de gastos por categoría
