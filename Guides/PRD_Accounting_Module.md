@@ -26,4 +26,25 @@
 - [x] Búsqueda y filtros avanzados en ambas listas
 
 ### Fase 2 — Ingresos & Egresos
-... (y las demás fases que se irán marcando)
+- [x] Formulario de registro de movimiento financiero (todos los campos definidos)
+- [x] Vista de tabla con filtros avanzados
+- [ ] Vista de línea de tiempo mensual
+- [ ] Adjuntar comprobante (upload y visualización)
+- [ ] Importación masiva desde Excel
+- [ ] Exportación a Excel con filtros aplicados
+- [x] Resumen de totales en la tabla
+- [ ] Vinculación a facturas, clientes y proveedores
+
+### Fase 3 — Facturación
+- [x] Formulario de creación de factura emitida (ítems, cálculos, impuestos, descuentos)
+- [x] Numeración automática de facturas
+- [x] Gestión de estados de factura
+- [ ] Registro de pagos parciales y totales
+- [ ] Historial de pagos por factura
+- [ ] Generación y exportación de factura a PDF con membrete Voltac
+- [ ] Envío de factura por correo (via webhook n8n)
+- [x] Formulario de registro de factura recibida (proveedor)
+- [ ] Adjuntar PDF de factura recibida
+- [ ] Alertas de vencimiento automáticas
+- [x] Listado con filtros avanzados (ambos tipos)
+- [ ] Exportación de listado a Excel
