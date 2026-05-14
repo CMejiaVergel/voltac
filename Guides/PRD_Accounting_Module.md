@@ -18,12 +18,12 @@
 - [x] Implementar sección de Integración n8n (URL, token, test de conexión, log)
 
 ### Fase 1 — Clientes & Proveedores
-- [ ] CRUD completo de Clientes
-- [ ] CRUD completo de Proveedores
+- [x] CRUD completo de Clientes
+- [x] CRUD completo de Proveedores
 - [ ] Importación desde Excel (plantilla descargable)
 - [ ] Exportación a Excel
 - [ ] Vista de ficha individual con historial vinculado
-- [ ] Búsqueda y filtros avanzados en ambas listas
+- [x] Búsqueda y filtros avanzados en ambas listas
 
 ### Fase 2 — Ingresos & Egresos
 ... (y las demás fases que se irán marcando)
