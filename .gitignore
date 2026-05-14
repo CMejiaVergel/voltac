@@ -5,3 +5,8 @@ build/
 /uploads/
 .env
 .env.local
+
+# SQLite database — each environment manages its own instance
+*.db
+*.db-shm
+*.db-wal
