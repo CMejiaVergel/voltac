@@ -43,57 +43,34 @@ export default function AccountingLayout({ children }: { children: React.ReactNo
         </div>
       </div>
 
-      <div className="flex flex-col lg:flex-row gap-6 flex-1 overflow-hidden min-h-[600px]">
-        {/* Sub-navigation sidebar for accounting module */}
-        <aside className="w-full lg:w-64 shrink-0 bg-card border border-border rounded-xl p-4 overflow-y-auto hidden lg:block">
-          <nav className="space-y-1">
-            {navItems.map((item) => {
-              if (item.role && !item.role.includes(role)) return null;
-              const isActive = item.exact ? pathname === item.href : pathname.startsWith(item.href);
-              
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                    isActive ? "bg-primary text-white" : "text-muted-foreground hover:bg-secondary/5 hover:text-foreground"
-                  )}
-                >
-                  {item.icon}
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
-        </aside>
+      <div className="border-b border-border pt-2">
+        <nav className="flex gap-2 overflow-x-auto no-scrollbar pb-[1px]">
+          {navItems.map((item) => {
+            if (item.role && !item.role.includes(role)) return null;
+            const isActive = item.exact ? pathname === item.href : pathname.startsWith(item.href);
+            
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-2 px-4 py-3 rounded-t-lg text-sm font-medium whitespace-nowrap transition-colors relative",
+                  isActive ? "text-primary bg-card border-x border-t border-border -mb-[1px]" : "text-muted-foreground hover:bg-secondary/5 hover:text-foreground border border-transparent"
+                )}
+              >
+                {item.icon}
+                {item.label}
+                {isActive && (
+                  <span className="absolute -bottom-[2px] left-0 w-full h-[3px] bg-card z-10" />
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+      </div>
 
-        {/* Mobile Sub-navigation */}
-        <div className="lg:hidden overflow-x-auto pb-2 flex gap-2 no-scrollbar">
-            {navItems.map((item) => {
-              if (item.role && !item.role.includes(role)) return null;
-              const isActive = item.exact ? pathname === item.href : pathname.startsWith(item.href);
-              
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-2 px-4 py-2 rounded-full text-xs font-medium whitespace-nowrap transition-colors",
-                    isActive ? "bg-primary text-white" : "bg-card border border-border text-muted-foreground"
-                  )}
-                >
-                  {item.icon}
-                  {item.label}
-                </Link>
-              );
-            })}
-        </div>
-
-        {/* Content Area */}
-        <div className="flex-1 overflow-y-auto bg-card border border-border rounded-xl p-6 shadow-sm">
-          {children}
-        </div>
+      <div className="flex-1 overflow-y-auto bg-card border border-border rounded-xl p-6 shadow-sm min-h-[500px]">
+        {children}
       </div>
     </div>
   );
