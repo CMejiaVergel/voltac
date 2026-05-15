@@ -85,28 +85,33 @@ export default function FacturacionPage() {
 
   const handleConfirmImport = async () => {
     if(!pdfData) return;
-    // Try to match supplier/client by name or NIT
+    // Emitted invoice → third party is the CLIENT; Received → third party is the ISSUER/SUPPLIER
+    const thirdPartyNit  = activeTab==="emitted" ? (pdfData.client_nit  ||pdfData.issuer_nit)  : (pdfData.issuer_nit ||pdfData.client_nit);
+    const thirdPartyName = activeTab==="emitted" ? (pdfData.client_name ||pdfData.issuer_name) : (pdfData.issuer_name||pdfData.client_name);
+
     const endpoint = activeTab==="received" ? "/api/accounting/suppliers" : "/api/accounting/clients";
     const j = await fetch(endpoint).then(r=>r.json());
     const list = j.success ? j.data : [];
     const matched = list.find((x:any)=>
-      x.document_number===pdfData.document_number ||
-      x.name?.toLowerCase()===pdfData.supplier_name?.toLowerCase()
+      (thirdPartyNit  && x.document_number?.replace(/[.\s-]/g,"")===thirdPartyNit.replace(/[.\s-]/g,"")) ||
+      (thirdPartyName && x.name?.toLowerCase()===thirdPartyName?.toLowerCase())
     );
 
     const issueDate = pdfData.issue_date || new Date().toISOString().split("T")[0];
+    const dueDate   = pdfData.due_date   || addDays(issueDate, 30);
     const items = pdfData.items?.length > 0
       ? pdfData.items.map((it:any)=>({ description:it.description, quantity:it.quantity||1, unit_price:it.unit_price||0, discount_pct:0, tax_id:"1" }))
       : [{ description:"Servicios (extraído de PDF)", quantity:1, unit_price:pdfData.subtotal||pdfData.total||0, discount_pct:0, tax_id:"1" }];
 
+    // Do NOT pass an `id` — InvoiceModal uses !!initialData?.id to decide POST vs PUT
     setEditingItem({
       type: activeTab,
       third_party_id: matched ? String(matched.id) : "",
       issue_date: issueDate,
-      due_date: addDays(issueDate, 30),
+      due_date: dueDate,
       currency: "COP",
       discount: 0,
-      notes: `Importado desde Siigo. Número original: ${pdfData.invoice_number||"—"}${pdfData.document_number ? ` · NIT: ${pdfData.document_number}` : ""}`,
+      notes: `Importado de Siigo. Factura N°: ${pdfData.invoice_number||"—"} · NIT ${activeTab==="emitted"?"cliente":"proveedor"}: ${thirdPartyNit||"—"}`,
       terms: "",
       items,
       _importedFrom: "pdf",
@@ -170,13 +175,16 @@ export default function FacturacionPage() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
             {[
-              {label:"Proveedor/Emisor", val:pdfData.supplier_name||"—"},
-              {label:"NIT", val:pdfData.document_number||"—"},
-              {label:"N° Factura", val:pdfData.invoice_number||"—"},
-              {label:"Fecha Emisión", val:pdfData.issue_date||"—"},
-              {label:"Subtotal", val:fmt(pdfData.subtotal||0)},
-              {label:"IVA", val:fmt(pdfData.tax_total||0)},
-              {label:"Total", val:fmt(pdfData.total||0)},
+              {label:"Emisor",           val:pdfData.issuer_name   ||"—"},
+              {label:"NIT Emisor",       val:pdfData.issuer_nit    ||"—"},
+              {label:"Cliente",          val:pdfData.client_name   ||"—"},
+              {label:"NIT Cliente",      val:pdfData.client_nit    ||"—"},
+              {label:"N° Factura",       val:pdfData.invoice_number||"—"},
+              {label:"Fecha Emisión",    val:pdfData.issue_date    ||"—"},
+              {label:"Fecha Vencimiento",val:pdfData.due_date      ||"—"},
+              {label:"Subtotal",         val:fmt(pdfData.subtotal  ||0)},
+              {label:"IVA",              val:fmt(pdfData.tax_total ||0)},
+              {label:"Total a Pagar",    val:fmt(pdfData.total     ||0)},
               {label:"Ítems detectados", val:`${pdfData.items?.length||0}`},
             ].map(f=>(
               <div key={f.label} className="bg-white border border-blue-100 rounded-lg px-3 py-2">

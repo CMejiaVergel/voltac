@@ -24,7 +24,7 @@ interface QuickForm { name: string; document_type: string; document_number: stri
 interface Props { isOpen: boolean; onClose: () => void; onSuccess: () => void; initialType?: "emitted" | "received"; initialData?: any; }
 
 export function InvoiceModal({ isOpen, onClose, onSuccess, initialType = "emitted", initialData }: Props) {
-  const isEditing = !!initialData;
+  const isEditing = !!initialData?.id;   // PDF-imported data has no id → must POST, not PUT
   const [clients, setClients]     = useState<any[]>([]);
   const [suppliers, setSuppliers] = useState<any[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
