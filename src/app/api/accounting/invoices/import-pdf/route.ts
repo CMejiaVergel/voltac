@@ -1,38 +1,28 @@
 import { NextResponse } from "next/server";
-import { extractText } from "unpdf";
 
-// Smart amount parser — handles BOTH US format (1,234.56) and Colombian (1.234,56)
+// ── Smart number parser: handles both US "1,234.56" and Colombian "1.234,56"
 const parseAmount = (s: string): number => {
   if (!s) return 0;
   const t = s.replace(/\s/g, "");
-  const lastDot   = t.lastIndexOf(".");
+  const lastDot = t.lastIndexOf(".");
   const lastComma = t.lastIndexOf(",");
   let n: string;
-  if (lastDot > lastComma) {
-    // US format: "7,499,999.99" → remove commas → "7499999.99"
-    n = t.replace(/,/g, "");
-  } else if (lastComma > lastDot) {
-    // Colombian: "7.499.999,99" → remove dots, comma→dot → "7499999.99"
-    n = t.replace(/\./g, "").replace(",", ".");
-  } else {
-    n = t.replace(/,/g, "");
-  }
+  if (lastDot > lastComma) n = t.replace(/,/g, "");          // US: remove commas
+  else if (lastComma > lastDot) n = t.replace(/\./g, "").replace(",", "."); // CO: remove dots, comma→dot
+  else n = t.replace(/,/g, "");
   return parseFloat(n) || 0;
 };
 
 const clean = (s: string) => s?.replace(/\s+/g, " ").trim() || "";
 
-// Convert various date formats to ISO YYYY-MM-DD
 const toISO = (raw: string): string => {
-  if (!raw || raw === "--") return "";
-  // Already ISO
+  if (!raw || raw === "--" || raw === "—") return "";
   if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
   const parts = raw.split(/[\/\-]/);
   if (parts.length !== 3) return "";
   const [a, b, c] = parts.map(Number);
-  // YY-MM-DD or DD/MM/YY
-  if (a > 31) return `${a}-${String(b).padStart(2,"0")}-${String(c).padStart(2,"0")}`;
-  return `${c > 100 ? c : 2000+c}-${String(b).padStart(2,"0")}-${String(a).padStart(2,"0")}`;
+  if (a > 31) return `${a}-${String(b).padStart(2, "0")}-${String(c).padStart(2, "0")}`;
+  return `${c > 100 ? c : 2000 + c}-${String(b).padStart(2, "0")}-${String(a).padStart(2, "0")}`;
 };
 
 export async function POST(req: Request) {
@@ -43,76 +33,105 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: false, error: "Se requiere un archivo PDF" }, { status: 400 });
     }
 
-    const { text: rawText } = await extractText(new Uint8Array(await file.arrayBuffer()), { mergePages: true });
-    const text  = rawText || "";
-    const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+    const buffer = Buffer.from(await file.arrayBuffer());
 
-    // ── ISSUER (top of document) ──────────────────────────────────────────
-    // iSiigo: first line is company name, second line "NIT XXXXXXXXX-X"
-    const firstNitIdx = lines.findIndex(l => /^NIT\b/i.test(l));
-    const issuerName  = firstNitIdx > 0 ? clean(lines[firstNitIdx - 1]) : "";
-    const issuerNitRaw = firstNitIdx >= 0
-      ? (lines[firstNitIdx].replace(/^NIT\s*/i,"").trim() ||        // NIT on same line
-         (lines[firstNitIdx + 1] || ""))                             // or next line
-      : "";
-    const issuerNit = issuerNitRaw.replace(/[.\s]/g, "").match(/[\d-]{5,15}/)?.[0] || "";
+    // pdf-parse v1.1.1 — uses pdfjs-dist v1.x which has NO browser API dependencies
+    // This version reliably extracts text from browser-printed PDFs (iSiigo, Chrome print, etc.)
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const pdfParse = require("pdf-parse");
+    const pdfData  = await pdfParse(buffer);
+    const text: string = pdfData.text || "";
+    const lines = text.split("\n").map((l: string) => l.trim()).filter(Boolean);
 
-    // ── CLIENT (after "Señores" keyword) ─────────────────────────────────
-    const sIdx = lines.findIndex(l => /^Se[ñn]ores?$/i.test(l));
+    // ── DEBUG: return raw text for first-time calibration ─────────────────
+    // This allows us to see exactly what pdfjs extracts from this specific PDF
+    if (lines.length === 0) {
+      return NextResponse.json({
+        success: false,
+        error: "El PDF no tiene texto extraíble (posiblemente es una imagen escaneada). Cantidad de páginas: " + pdfData.numpages,
+        raw_text_preview: text.slice(0, 500),
+      }, { status: 422 });
+    }
+
+    // ── ISSUER (top section: company name + NIT) ───────────────────────────
+    // iSiigo: "VOLTAC SYSTEMS SAS\nNIT 901.734.603-1\n..."
+    const firstNitIdx = lines.findIndex((l: string) => /^NIT\b/i.test(l) || /^NIT\s+\d/i.test(l));
+    let issuerName = "";
+    let issuerNit  = "";
+    if (firstNitIdx >= 0) {
+      // Issuer name is 1-3 lines before the first NIT
+      for (let i = Math.max(0, firstNitIdx - 3); i < firstNitIdx; i++) {
+        const c = lines[i];
+        if (c.length > 3 && !/^\d/.test(c) && !/fecha|tel:|email|correo|web|@/i.test(c)) {
+          issuerName = c.slice(0, 100);
+        }
+      }
+      // NIT value: same line or next line
+      const nitLine = lines[firstNitIdx];
+      const inlinePart = nitLine.replace(/^NIT\s*/i, "").trim();
+      const rawNit = inlinePart || (lines[firstNitIdx + 1] || "");
+      issuerNit = rawNit.replace(/[.\s]/g, "").match(/[\d-]{6,14}/)?.[0] || "";
+    }
+
+    // ── CLIENT (after "Señores" keyword) ──────────────────────────────────
+    const sIdx = lines.findIndex((l: string) => /^Se[ñn]ores?$/i.test(l));
     let clientName = "";
     let clientNit  = "";
     if (sIdx >= 0) {
       clientName = clean(lines[sIdx + 1] || "");
-      // Find "NIT" label and grab next non-empty line as the NIT value
+      // Find NIT label in the client section (next 12 lines)
       const clientSlice = lines.slice(sIdx + 1, sIdx + 15);
-      const cNitIdx = clientSlice.findIndex(l => /^NIT$/i.test(l));
+      const cNitIdx = clientSlice.findIndex((l: string) => /^NIT$/i.test(l));
       if (cNitIdx >= 0) {
-        const raw = clientSlice[cNitIdx + 1] || "";
-        clientNit = raw.replace(/[.\s]/g, "").match(/[\d-]{5,15}/)?.[0] || "";
+        const rawNit = (clientSlice[cNitIdx + 1] || "").trim();
+        clientNit = rawNit.replace(/[.\s]/g, "").match(/[\d-]{6,14}/)?.[0] || "";
       }
     }
 
-    // ── Invoice number ────────────────────────────────────────────────────
-    // iSiigo: "Factura\nNo. 1" or "No. 1"
-    const numLineIdx = lines.findIndex(l => /^No\.?\s*\d+$/i.test(l) || /^N[°o]\s*\d+$/i.test(l));
+    // ── Invoice number ─────────────────────────────────────────────────────
+    // iSiigo formats: "No. 1", "No.1", "Factura\nNo. 1"
+    const numLineIdx = lines.findIndex((l: string) => /^No\.?\s*\d+$/i.test(l));
     let invoiceNumber = "";
     if (numLineIdx >= 0) {
       invoiceNumber = lines[numLineIdx].replace(/^No\.?\s*/i, "").trim();
     } else {
-      // Fallback: look for FEV pattern
-      const fev = text.match(/\b(FEV[-\s]?[A-Z0-9\-]{3,25})\b/i) || text.match(/\b(RV[0-9]{2,6})\b/i);
-      invoiceNumber = fev ? fev[1] : "";
+      const numMatch = text.match(/(?:Factura|N[°o])\.\s*(\d+)/i) ||
+                       text.match(/\b(FEV[-\s]?[A-Z0-9\-]{3,20})\b/i);
+      invoiceNumber = numMatch ? numMatch[1] : "";
     }
 
-    // ── Dates ─────────────────────────────────────────────────────────────
-    // iSiigo: "Fecha elaboración\n2025-12-15" or "Fecha de Vencimiento\n2025-12-15"
+    // ── Dates ──────────────────────────────────────────────────────────────
     const findDateAfterLabel = (label: RegExp): string => {
-      const idx = lines.findIndex(l => label.test(l));
+      const idx = lines.findIndex((l: string) => label.test(l));
       if (idx < 0) return "";
-      // Date might be on the same line or the next
+      // Check same line first
       const sameLine = lines[idx].replace(label, "").trim();
-      if (/\d/.test(sameLine)) return toISO(sameLine.match(/[\d\/\-]+/)?.[0] || "");
-      const next = (lines[idx + 1] || "").trim();
-      return toISO(next.match(/[\d\/\-]+/)?.[0] || "");
+      if (/\d/.test(sameLine)) return toISO(sameLine.match(/[\d\/\-]{6,10}/)?.[0] || "");
+      // Then next lines
+      for (let i = idx + 1; i <= idx + 3; i++) {
+        const m = (lines[i] || "").match(/[\d]{4}-[\d]{2}-[\d]{2}|[\d]{1,2}[\/\-][\d]{1,2}[\/\-][\d]{2,4}/);
+        if (m) return toISO(m[0]);
+      }
+      return "";
     };
-    const issueDate = findDateAfterLabel(/Fecha\s+(?:elaboraci[oó]n|de\s+emisi[oó]n)/i);
-    const dueDate   = findDateAfterLabel(/Fecha\s+de\s+[Vv]enc/i) ||
-                      findDateAfterLabel(/Vencimiento/i);
+    const issueDate = findDateAfterLabel(/Fecha\s+(?:elaboraci[oó]n|de\s+emisi[oó]n)/i)
+      || findDateAfterLabel(/Fecha\s+de\s+inicio/i);
+    const dueDate = findDateAfterLabel(/Fecha\s+de\s+[Vv]enc/i)
+      || findDateAfterLabel(/Vencimiento/i);
 
-    // ── Items: iSiigo table format ────────────────────────────────────────
-    // Header line: "Ítem  Descripción  Cantidad  Vr. Total"
-    // Rows (each column on its own line): item_num, description, qty, total
+    // ── Items: iSiigo column-per-line format ───────────────────────────────
+    // Table header contains "Vr. Total" or "Valor Total"
+    // Rows: [item_index, description, qty, total] — each on its own line
     const items: { description: string; quantity: number; unit_price: number; total: number }[] = [];
-    const tableStartIdx = lines.findIndex(l => /Vr\.?\s*Total/i.test(l));
-    const tableEndIdx   = lines.findIndex(l => /Total\s+items?:/i.test(l));
+    const vrTotalIdx = lines.findIndex((l: string) => /Vr\.?\s*[Tt]otal|Valor\s+[Tt]otal/i.test(l));
+    const endIdx = lines.findIndex((l: string, i: number) => i > vrTotalIdx && /Total\s+items?:/i.test(l));
 
-    if (tableStartIdx >= 0) {
-      const endIdx = tableEndIdx > tableStartIdx ? tableEndIdx : tableStartIdx + 50;
-      let i = tableStartIdx + 1;
-      while (i < endIdx) {
-        const line = lines[i];
-        // Item number is a standalone integer
-        if (/^\d+$/.test(line)) {
+    if (vrTotalIdx >= 0) {
+      const stop = endIdx > vrTotalIdx ? endIdx : vrTotalIdx + 60;
+      let i = vrTotalIdx + 1;
+      while (i < stop) {
+        // Item number: standalone integer
+        if (/^\d+$/.test(lines[i])) {
           const desc   = clean(lines[i + 1] || "");
           const qtyStr = lines[i + 2] || "1";
           const totStr = lines[i + 3] || "0";
@@ -127,43 +146,38 @@ export async function POST(req: Request) {
       }
     }
 
-    // ── Totals ────────────────────────────────────────────────────────────
-    const findAmountAfterLabel = (label: RegExp): number => {
-      const idx = lines.findIndex(l => label.test(l));
+    // ── Totals ─────────────────────────────────────────────────────────────
+    const findAmt = (label: RegExp): number => {
+      const idx = lines.findIndex((l: string) => label.test(l));
       if (idx < 0) return 0;
-      const sameLine = lines[idx].replace(label, "").trim();
-      if (parseAmount(sameLine) > 0) return parseAmount(sameLine);
+      const same = lines[idx].replace(label, "").trim();
+      if (parseAmount(same) > 0) return parseAmount(same);
       return parseAmount(lines[idx + 1] || "0");
     };
-    const subtotal = findAmountAfterLabel(/Total\s+Bruto/i)      || findAmountAfterLabel(/Base\s+[Gg]ravable/i);
-    const taxTotal = findAmountAfterLabel(/IVA\s*\d+%?/i)        || findAmountAfterLabel(/Valor\s+IVA/i);
-    const total    = findAmountAfterLabel(/Total\s+a\s+Pagar/i)   || findAmountAfterLabel(/Total\s+Factura/i);
-
-    // ── CUFE ─────────────────────────────────────────────────────────────
-    const cufeMatch = text.match(/CUFE[:\s]*([a-f0-9]{60,100})/i);
-    const cufe = cufeMatch ? cufeMatch[1] : "";
+    const subtotal = findAmt(/Total\s+Bruto/i)      || findAmt(/Base\s+[Gg]ravable/i);
+    const taxTotal = findAmt(/IVA\s*\d+%?/i)         || findAmt(/Valor\s+IVA/i);
+    const total    = findAmt(/Total\s+a\s+Pagar/i)   || findAmt(/Total\s+Factura/i) || findAmt(/^TOTAL$/i);
 
     return NextResponse.json({
       success: true,
       data: {
-        // Both issuer and client — page chooses which based on tab
         issuer_name:    issuerName,
         issuer_nit:     issuerNit,
         client_name:    clientName,
         client_nit:     clientNit,
-        // Legacy field — page overrides with correct one
+        // Legacy compat fields
         supplier_name:  issuerName,
         document_number: issuerNit,
         invoice_number: invoiceNumber,
-        cufe,
         issue_date:     issueDate,
         due_date:       dueDate,
         subtotal,
         tax_total:      taxTotal,
         total,
         items,
-        raw_text_preview: text.slice(0, 3000),
-        raw_lines_sample: lines.slice(0, 80),
+        // Always return full debug text so regex can be tuned if needed
+        raw_text_preview: text.slice(0, 4000),
+        raw_lines_sample: lines.slice(0, 100),
       },
     });
   } catch (error: any) {
