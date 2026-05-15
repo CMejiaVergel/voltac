@@ -77,17 +77,24 @@ export default function FacturacionPage() {
     const fd = new FormData(); fd.append("file", file);
     try {
       const j = await fetch("/api/accounting/invoices/import-pdf",{method:"POST",body:fd}).then(r=>r.json());
-      if(j.success){ setPdfData(j.data); setPdfState("preview"); }
-      else { setPdfError(j.error||"Error al procesar el PDF"); setPdfState("idle"); }
+      if(j.success){ 
+        setPdfData(j); 
+        setPdfState("preview"); 
+      }
+      else { 
+        setPdfError(j.error||"Error al procesar el PDF"); 
+        setPdfState("idle"); 
+      }
     } catch { setPdfError("Error de conexión"); setPdfState("idle"); }
     if(fileInputRef.current) fileInputRef.current.value="";
   };
 
   const handleConfirmImport = async () => {
-    if(!pdfData) return;
+    if(!pdfData || !pdfData.data) return;
+    const data = pdfData.data;
     // Emitted invoice → third party is the CLIENT; Received → third party is the ISSUER/SUPPLIER
-    const thirdPartyNit  = activeTab==="emitted" ? (pdfData.client_nit  ||pdfData.issuer_nit)  : (pdfData.issuer_nit ||pdfData.client_nit);
-    const thirdPartyName = activeTab==="emitted" ? (pdfData.client_name ||pdfData.issuer_name) : (pdfData.issuer_name||pdfData.client_name);
+    const thirdPartyNit  = activeTab==="emitted" ? (data.client_nit  ||data.issuer_nit)  : (data.issuer_nit ||data.client_nit);
+    const thirdPartyName = activeTab==="emitted" ? (data.client_name ||data.issuer_name) : (data.issuer_name||data.client_name);
 
     const endpoint = activeTab==="received" ? "/api/accounting/suppliers" : "/api/accounting/clients";
     const j = await fetch(endpoint).then(r=>r.json());
@@ -97,25 +104,28 @@ export default function FacturacionPage() {
       (thirdPartyName && x.name?.toLowerCase()===thirdPartyName?.toLowerCase())
     );
 
-    const issueDate = pdfData.issue_date || new Date().toISOString().split("T")[0];
-    const dueDate   = pdfData.due_date   || addDays(issueDate, 30);
-    const items = pdfData.items?.length > 0
-      ? pdfData.items.map((it:any)=>({ description:it.description, quantity:it.quantity||1, unit_price:it.unit_price||0, discount_pct:0, tax_id:"1" }))
-      : [{ description:"Servicios (extraído de PDF)", quantity:1, unit_price:pdfData.subtotal||pdfData.total||0, discount_pct:0, tax_id:"1" }];
+    const issueDate = data.issue_date || new Date().toISOString().split("T")[0];
+    const dueDate   = data.due_date   || addDays(issueDate, 30);
+    const items = data.items?.length > 0
+      ? data.items.map((it:any)=>({ description:it.description, quantity:it.quantity||1, unit_price:it.unit_price||0, discount_pct:0, tax_id:"1" }))
+      : [{ description:"Servicios (extraído de PDF)", quantity:1, unit_price:data.subtotal||data.total||0, discount_pct:0, tax_id:"1" }];
 
+    const metadata = pdfData.metadata || {};
+    
     // Do NOT pass an `id` — InvoiceModal uses !!initialData?.id to decide POST vs PUT
     setEditingItem({
       type: activeTab,
       third_party_id: matched ? String(matched.id) : "",
       issue_date: issueDate,
       due_date: dueDate,
-      currency: "COP",
+      currency: data.currency || "COP",
       discount: 0,
-      notes: `Importado de Siigo. Factura N°: ${pdfData.invoice_number||"—"} · NIT ${activeTab==="emitted"?"cliente":"proveedor"}: ${thirdPartyNit||"—"}`,
+      notes: `Importado automáticamente de PDF. Confianza: ${metadata.confidence||0}%. Método: ${metadata.parser_used||"N/A"}. Factura N°: ${data.invoice_number||"—"} · NIT: ${thirdPartyNit||"—"}`,
       terms: "",
       items,
       _importedFrom: "pdf",
       _matchedThirdParty: matched?.name || null,
+      _validation: pdfData.validation
     });
     setPdfState("idle"); setPdfData(null);
     setIsModalOpen(true);
@@ -166,26 +176,44 @@ export default function FacturacionPage() {
       )}
 
       {/* PDF Preview Card */}
-      {pdfState==="preview" && pdfData && (
-        <div className="bg-blue-50 border border-blue-200 rounded-xl p-5 space-y-4">
+      {pdfState==="preview" && pdfData?.data && (
+        <div className={`bg-blue-50 border ${pdfData.validation?.isValid ? 'border-blue-200' : 'border-amber-400 bg-amber-50'} rounded-xl p-5 space-y-4`}>
           <div className="flex items-center gap-2">
-            <CheckCircle size={18} className="text-blue-600"/>
-            <h4 className="font-semibold text-blue-800">PDF procesado correctamente</h4>
-            <button onClick={()=>{setPdfState("idle");setPdfData(null);}} className="ml-auto text-blue-400 hover:text-blue-700"><X size={16}/></button>
+            {pdfData.validation?.isValid ? (
+              <CheckCircle size={18} className="text-blue-600"/>
+            ) : (
+              <AlertCircle size={18} className="text-amber-600"/>
+            )}
+            <h4 className={`font-semibold ${pdfData.validation?.isValid ? 'text-blue-800' : 'text-amber-800'}`}>
+              {pdfData.validation?.isValid ? 'PDF procesado correctamente' : 'Revisa los datos extraídos'}
+            </h4>
+            <div className="flex gap-2 ml-auto">
+              <span className="text-xs px-2 py-1 rounded bg-white border border-blue-100 text-blue-600">Confianza: {pdfData.metadata?.confidence}%</span>
+              <button onClick={()=>{setPdfState("idle");setPdfData(null);}} className="text-blue-400 hover:text-blue-700"><X size={16}/></button>
+            </div>
           </div>
+          
+          {!pdfData.validation?.isValid && (
+            <div className="text-sm text-amber-700 mb-2">
+              ⚠️ Algunos datos no se detectaron o tienen inconsistencias.
+              {pdfData.validation?.missingFields?.length > 0 && <span className="block font-medium">Campos faltantes: {pdfData.validation.missingFields.join(", ")}</span>}
+              {pdfData.validation?.warnings?.length > 0 && <span className="block">{pdfData.validation.warnings.join(". ")}</span>}
+            </div>
+          )}
+
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-sm">
             {[
-              {label:"Emisor",           val:pdfData.issuer_name   ||"—"},
-              {label:"NIT Emisor",       val:pdfData.issuer_nit    ||"—"},
-              {label:"Cliente",          val:pdfData.client_name   ||"—"},
-              {label:"NIT Cliente",      val:pdfData.client_nit    ||"—"},
-              {label:"N° Factura",       val:pdfData.invoice_number||"—"},
-              {label:"Fecha Emisión",    val:pdfData.issue_date    ||"—"},
-              {label:"Fecha Vencimiento",val:pdfData.due_date      ||"—"},
-              {label:"Subtotal",         val:fmt(pdfData.subtotal  ||0)},
-              {label:"IVA",              val:fmt(pdfData.tax_total ||0)},
-              {label:"Total a Pagar",    val:fmt(pdfData.total     ||0)},
-              {label:"Ítems detectados", val:`${pdfData.items?.length||0}`},
+              {label:"Emisor",           val:pdfData.data.issuer_name   ||"—"},
+              {label:"NIT Emisor",       val:pdfData.data.issuer_nit    ||"—"},
+              {label:"Cliente",          val:pdfData.data.client_name   ||"—"},
+              {label:"NIT Cliente",      val:pdfData.data.client_nit    ||"—"},
+              {label:"N° Factura",       val:pdfData.data.invoice_number||"—"},
+              {label:"Fecha Emisión",    val:pdfData.data.issue_date    ||"—"},
+              {label:"Fecha Vencimiento",val:pdfData.data.due_date      ||"—"},
+              {label:"Subtotal",         val:fmt(pdfData.data.subtotal  ||0)},
+              {label:"IVA",              val:fmt(pdfData.data.tax_total ||0)},
+              {label:"Total a Pagar",    val:fmt(pdfData.data.total     ||0)},
+              {label:"Ítems detectados", val:`${pdfData.data.items?.length||0}`},
             ].map(f=>(
               <div key={f.label} className="bg-white border border-blue-100 rounded-lg px-3 py-2">
                 <p className="text-xs text-blue-400 font-medium">{f.label}</p>
