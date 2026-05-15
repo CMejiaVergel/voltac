@@ -64,13 +64,25 @@ export async function POST(req: Request) {
 
     const invoiceId = result.lastID;
 
-    // Insert invoice items if present
+    // Wrap items in a transaction to prevent partial saves on failure
     if (data.items && data.items.length > 0) {
-      for (const item of data.items) {
-        await db.run(
-          `INSERT INTO acc_invoice_items (invoice_id, description, quantity, unit_price, discount_pct, tax_id, total) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-          [invoiceId, item.description, item.quantity, item.unit_price, item.discount_pct || 0, item.tax_id || null, item.total]
-        );
+      await db.run("BEGIN TRANSACTION");
+      try {
+        for (const item of data.items) {
+          const qty   = parseFloat(item.quantity)     || 1;
+          const price = parseFloat(item.unit_price)   || 0;
+          const dto   = parseFloat(item.discount_pct) || 0;
+          // Always calculate total server-side to avoid NOT NULL failures
+          const itemTotal = qty * price * (1 - dto / 100);
+          await db.run(
+            `INSERT INTO acc_invoice_items (invoice_id, description, quantity, unit_price, discount_pct, tax_id, total) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+            [invoiceId, item.description || "", qty, price, dto, item.tax_id || null, itemTotal]
+          );
+        }
+        await db.run("COMMIT");
+      } catch (itemErr) {
+        await db.run("ROLLBACK");
+        throw itemErr;
       }
     }
 
