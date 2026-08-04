@@ -34,6 +34,11 @@
   --input: #e2e8f0;
   --ring: #2563eb;
 
+  /* Azul de marca para superficies amplias (tarjetas y bandas de sección).
+     Reemplaza al casi-negro en bloques grandes; las secciones oscuras completas
+     usan `secondary`, el mismo tono de la barra de navegación. */
+  --ink: #212534;
+
   --radius: 0.5rem;
 }
 
@@ -96,6 +101,8 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
+  --color-ink: var(--ink);
+
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -110,5 +117,173 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  /* Escala tipográfica del sitio público.
+     Centralizar los saltos por breakpoint es lo que mantiene la coherencia
+     entre móvil, tablet y escritorio: si un título cambia, cambia en todos
+     los formatos a la vez. */
+
+  /* Titular de portada */
+  .display-1 {
+    @apply text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.1];
+  }
+  /* Título de sección */
+  .display-2 {
+    @apply text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-tight;
+  }
+  /* Título de tarjeta destacada o de servicio en detalle */
+  .display-3 {
+    @apply text-xl sm:text-2xl md:text-3xl font-black tracking-tight leading-tight;
+  }
+  /* Párrafo introductorio bajo un título */
+  .lead {
+    @apply text-base sm:text-lg font-light leading-relaxed;
+  }
+  /* Antetítulo: mayúsculas espaciadas, sin fondo */
+  .eyebrow {
+    @apply text-xs font-bold uppercase tracking-[0.2em] text-primary;
+  }
+  /* Relleno estándar de tarjeta: más ajustado en móvil */
+  .card-pad {
+    @apply p-6 sm:p-8;
+  }
+}
+
+@layer utilities {
+  /* Barras de navegación horizontales sin scrollbar visible (ej. tabs del panel de contabilidad) */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* --- Texturas técnicas -------------------------------------------------
+     Retícula y trama de puntos como SVG embebido: dan el aire de plano
+     técnico sin pedir un solo archivo al servidor. */
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, color-mix(in srgb, var(--primary) 12%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in srgb, var(--primary) 12%, transparent) 1px, transparent 1px);
+    background-size: 56px 56px;
+  }
+  .bg-dots {
+    background-image: radial-gradient(
+      color-mix(in srgb, var(--primary) 22%, transparent) 1px,
+      transparent 1px
+    );
+    background-size: 22px 22px;
+  }
+  /* Desvanece una textura hacia los bordes para que nunca corte en seco */
+  .mask-fade-y {
+    mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
+    -webkit-mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
+  }
+  .mask-fade-radial {
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+    -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+  }
+
+  /* --- Barrido de luz en botones ---------------------------------------- */
+  .shine {
+    position: relative;
+    overflow: hidden;
+  }
+  .shine::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-120%) skewX(-20deg);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.28),
+      transparent
+    );
+    transition: transform 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+    pointer-events: none;
+  }
+  .shine:hover::after {
+    transform: translateX(120%) skewX(-20deg);
+  }
+
+  /* --- Línea divisoria con haz de luz recorriéndola ---------------------- */
+  .beam {
+    position: relative;
+    height: 1px;
+    background: color-mix(in srgb, var(--primary) 18%, transparent);
+    overflow: hidden;
+  }
+  .beam::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    width: 40%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--accent),
+      transparent
+    );
+    animation: beam-slide 5s ease-in-out infinite;
+  }
+
+  @keyframes beam-slide {
+    0% {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+    20%,
+    80% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateX(350%);
+      opacity: 0;
+    }
+  }
+
+  /* --- Latido suave para indicadores de estado -------------------------- */
+  @keyframes soft-pulse {
+    0%,
+    100% {
+      opacity: 0.35;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.35);
+    }
+  }
+  .soft-pulse {
+    animation: soft-pulse 2.8s ease-in-out infinite;
+  }
+
+  /* --- Aparición del contenido antes de que hidrate el JS ---------------- */
+  /* Evita el "flash" de contenido sin animar en conexiones lentas */
+  .will-reveal {
+    will-change: transform, opacity, filter;
+  }
+}
+
+/* Respeto por quien pidió menos movimiento: se apaga todo lo decorativo.
+   Las animaciones de Framer Motion se desactivan desde el propio componente
+   con useReducedMotion; esto cubre lo que se anima solo con CSS. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .beam::after,
+  .soft-pulse {
+    animation: none !important;
   }
 }

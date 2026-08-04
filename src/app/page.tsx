@@ -3,238 +3,430 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { ArrowRight, Code, Brain, BotMessageSquare, Cpu, Rocket, ShieldCheck, Zap, Activity } from "lucide-react";
-import { SiReact, SiNextdotjs, SiPython, SiFastapi, SiNodedotjs, SiDocker, SiOpenai, SiPostgresql, SiArduino, SiCplusplus } from "react-icons/si";
+import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
+import { ArrowRight, Activity, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
-
-const SERVICES = [
-  { title: "Desarrollo a Medida & Web", desc: "Plataformas web, dashboards B2B y aplicaciones diseñadas bajo metodologías ágiles.", icon: <Code size={32} /> },
-  { title: "IA & Agentes Cognitivos", desc: "Sistemas RAG para lectura documental, predicción de datos y análisis corporativo.", icon: <Brain size={32} /> },
-  { title: "Automatización WhatsApp / IG", desc: "Agentes que venden y atienden clientes 24/7 conectados a tu CRM interno.", icon: <BotMessageSquare size={32} /> },
-  { title: "Desarrollo Hardware & IoT", desc: "Diseño PCB, sensores conectados y telemetría para optimizar tu cadena productiva.", icon: <Cpu size={32} /> },
-];
-
-const METRICS = [
-  { label: "Tiempos Reducidos", value: "85", suffix: "%" },
-  { label: "Usuarios SOPORTADOS", value: "100", suffix: "k+" },
-  { label: "Automatización", value: "300", prefix: "+", suffix: "%" },
-  { label: "Stack Tech", value: "15", suffix: "+" },
-];
-
-import { FaAws } from "react-icons/fa";
-
-const TECH_ITEMS = [
-  { name: "React", icon: <SiReact size={32} /> },
-  { name: "Next.js", icon: <SiNextdotjs size={32} /> },
-  { name: "Python", icon: <SiPython size={32} /> },
-  { name: "FastAPI", icon: <SiFastapi size={32} /> },
-  { name: "Node.js", icon: <SiNodedotjs size={32} /> },
-  { name: "AWS", icon: <FaAws size={32} /> },
-  { name: "Docker", icon: <SiDocker size={32} /> },
-  { name: "OpenAI / LLMs", icon: <SiOpenai size={32} /> },
-  { name: "PostgreSQL", icon: <SiPostgresql size={32} /> },
-  { name: "Arduino", icon: <SiArduino size={32} /> },
-  { name: "C++", icon: <SiCplusplus size={32} /> },
-];
+import { PartnersMarquee } from "@/components/PartnersMarquee";
+import { TechGrid } from "@/components/motion/TechGrid";
+import { TextReveal } from "@/components/motion/TextReveal";
+import { Reveal, RevealGroup, RevealItem, EASE } from "@/components/motion/Reveal";
+import { SpotlightCard } from "@/components/motion/SpotlightCard";
+import { ServiceVisual } from "@/components/motion/service-visuals";
+import { SERVICES, PILLARS, SECTORS } from "@/content/services";
 
 export default function Home() {
+  const [primaryService, ...otherServices] = SERVICES;
+  const PrimaryIcon = primaryService.icon;
+  const reduced = useReducedMotion();
+
+  // Paralaje del hero: el fondo se mueve más lento que el contenido y el texto
+  // se desvanece al salir. Da profundidad sin distraer de la lectura.
+  const heroRef = React.useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({
+    target: heroRef,
+    offset: ["start start", "end start"],
+  });
+  const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "18%"]);
+  const contentY = useTransform(scrollYProgress, [0, 1], ["0%", "26%"]);
+  const contentOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
+
   return (
     <div className="flex flex-col min-h-screen">
-      {/* 1. Hero Section */}
-      <section className="relative h-screen min-h-[650px] flex items-center justify-center overflow-hidden">
-        {/* Background Image with Overlay */}
-        <div className="absolute inset-0 z-0">
+      {/* 1. Hero */}
+      <section
+        ref={heroRef}
+        data-techgrid-root
+        className="relative min-h-[88vh] flex items-center overflow-hidden py-28 sm:py-32"
+      >
+        <motion.div className="absolute inset-0 z-0" style={reduced ? undefined : { y: bgY }}>
           <Image
             src="/Voltac_enviroment.png"
-            alt="Inteligencia Artificial y Software - Voltac Systems"
+            alt="Tecnología que le devuelve el tiempo a su equipo - Voltac Systems"
             fill
-            className="object-cover object-center scale-105"
+            className="object-cover object-center scale-110"
             priority
           />
-          <div className="absolute inset-0 bg-secondary/80 mix-blend-multiply" />
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-secondary/60 to-secondary" />
-        </div>
+          <div className="absolute inset-0 bg-secondary/85 mix-blend-multiply" />
+          <div className="absolute inset-0 bg-gradient-to-b from-secondary/40 via-secondary/70 to-secondary" />
+        </motion.div>
 
-        <div className="container mx-auto px-6 md:px-12 lg:px-32 relative z-10 pt-20">
+        {/* Retícula técnica animada */}
+        <TechGrid className="absolute inset-0 z-[1] w-full h-full pointer-events-none mask-fade-radial opacity-70" />
+
+        {/* Halo que respira detrás del titular */}
+        {!reduced && (
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            className="max-w-4xl space-y-8 text-white"
-          >
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/20 border border-primary/40 backdrop-blur-md text-accent text-sm font-semibold tracking-wider shadow-[0_0_15px_rgba(37,99,235,0.4)]">
-              <Rocket size={16} className="text-accent animate-pulse" />
-              Impulsando la Transformación Digital
-            </div>
-            
-            <h1 className="text-5xl md:text-7xl font-black tracking-tighter leading-[1.05]">
-              Aceleramos tu negocio con <span className="text-transparent bg-clip-text bg-gradient-to-r from-accent to-primary animate-pulse">Inteligencia Artificial</span> y Software a Medida.
-            </h1>
-            
-            <p className="text-xl md:text-2xl text-white/80 font-light max-w-2xl leading-relaxed">
-              Posicionamos a las empresas como referentes en la era digital mediante agentes cognitivos, automatización avanzada y arquitecturas cloud de primer nivel.
-            </p>
-            
-            <div className="flex flex-col sm:flex-row gap-4 pt-4">
+            aria-hidden
+            className="absolute left-1/4 top-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-primary/20 blur-[130px] z-[1] pointer-events-none"
+            animate={{ opacity: [0.35, 0.6, 0.35], scale: [1, 1.12, 1] }}
+            transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
+          />
+        )}
+
+        <motion.div
+          className="container mx-auto px-4 md:px-6 relative z-10"
+          style={reduced ? undefined : { y: contentY, opacity: contentOpacity }}
+        >
+          <div className="max-w-3xl text-white">
+            <motion.p
+              initial={reduced ? undefined : { opacity: 0, y: 12 }}
+              animate={reduced ? undefined : { opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: EASE }}
+              className="flex items-center gap-3 text-xs md:text-sm font-semibold uppercase tracking-[0.25em] text-accent mb-5 sm:mb-6"
+            >
+              <span className="relative flex w-2 h-2">
+                <span className="absolute inline-flex w-full h-full rounded-full bg-accent soft-pulse" />
+                <span className="relative inline-flex w-2 h-2 rounded-full bg-accent" />
+              </span>
+              Voltac Systems
+            </motion.p>
+
+            <TextReveal
+              as="h1"
+              className="display-1 mb-6"
+              delay={0.1}
+              segments={[
+                { text: "Más resultados." },
+                { text: "Menos trabajo manual.", highlight: true },
+              ]}
+            />
+
+            <motion.p
+              initial={reduced ? undefined : { opacity: 0, y: 16, filter: "blur(6px)" }}
+              animate={reduced ? undefined : { opacity: 1, y: 0, filter: "blur(0px)" }}
+              transition={{ duration: 0.7, delay: 0.55, ease: EASE }}
+              className="lead text-white/70 max-w-xl mb-10"
+            >
+              Identificamos las tareas que le están costando horas a su organización y las
+              convertimos en procesos que se hacen solos. Para empresas y profesionales de cualquier
+              sector.
+            </motion.p>
+
+            <motion.div
+              initial={reduced ? undefined : { opacity: 0, y: 16 }}
+              animate={reduced ? undefined : { opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.7, ease: EASE }}
+              className="flex flex-col sm:flex-row gap-4"
+            >
               <Link href="/cotizar">
-                <Button variant="accent" size="lg" className="w-full sm:w-auto h-14 px-8 text-base shadow-[0_0_20px_rgba(96,165,250,0.3)]">
-                  Consultar Proyecto <ArrowRight className="ml-2 w-5 h-5" />
+                <Button variant="accent" size="lg" className="shine w-full sm:w-auto h-12 px-7 text-sm group">
+                  Agendar conversación
+                  <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
                 </Button>
               </Link>
               <Link href="/servicios">
-                <Button variant="outline" size="lg" className="w-full sm:w-auto h-14 px-8 text-base text-white border-white/30 hover:bg-white/10 hover:border-white">
-                  Explorar Servicios
+                <Button
+                  variant="outline"
+                  size="lg"
+                  className="w-full sm:w-auto h-12 px-7 text-sm text-white border-white/25 hover:bg-white/10 hover:border-white backdrop-blur-sm"
+                >
+                  Ver los servicios
+                </Button>
+              </Link>
+            </motion.div>
+
+            <motion.p
+              initial={reduced ? undefined : { opacity: 0 }}
+              animate={reduced ? undefined : { opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.95 }}
+              className="text-xs md:text-sm text-white/45 font-light mt-8 tracking-wide"
+            >
+              Resultados en semanas, no en años · Entregas que puede probar cada dos semanas
+            </motion.p>
+          </div>
+        </motion.div>
+      </section>
+
+      {/* 2. Marcas con las que trabajamos */}
+      <PartnersMarquee />
+
+      {/* 3. Servicios */}
+      <section className="py-16 sm:py-20 md:py-24 bg-white text-secondary relative overflow-hidden">
+        <div className="absolute inset-0 bg-dots opacity-[0.4] mask-fade-y pointer-events-none" aria-hidden />
+
+        <div className="container mx-auto px-4 md:px-6 relative">
+          <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 mb-12 md:mb-16">
+            <div className="max-w-2xl">
+              <Reveal>
+                <p className="eyebrow mb-4">Lo que hacemos</p>
+              </Reveal>
+              <TextReveal
+                as="h2"
+                className="display-2 mb-4"
+                segments={[{ text: "Servicios con" }, { text: "un mismo objetivo.", highlight: true }]}
+              />
+              <Reveal delay={0.15}>
+                <p className="lead text-secondary/70">
+                  Cada servicio resuelve un problema concreto. Se contratan por separado o
+                  combinados, según lo que hoy más le esté costando. Si no sabe por dónde empezar, se
+                  empieza por el primero.
+                </p>
+              </Reveal>
+            </div>
+            <Reveal delay={0.2} className="shrink-0">
+              <Link
+                href="/servicios"
+                className="font-semibold text-primary hover:text-accent uppercase tracking-wider inline-flex items-center gap-2 group transition-colors text-sm"
+              >
+                Ver el portafolio
+                <ArrowRight className="w-4 h-4 transform group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </Reveal>
+          </div>
+
+          <RevealGroup className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" stagger={0.07}>
+            {/* Servicio 01: punto de partida, destacado a lo ancho */}
+            <RevealItem className="md:col-span-2 lg:col-span-3">
+              <SpotlightCard className="group h-full overflow-hidden rounded-2xl bg-muted border border-border/50 hover:border-primary/30 hover:shadow-2xl transition-all duration-500 card-pad md:p-10 flex flex-col md:flex-row gap-6 md:gap-8 md:items-center">
+                <Link
+                  href={`/servicios#${primaryService.slug}`}
+                  className="absolute inset-0 z-20"
+                  aria-label={primaryService.title}
+                />
+                <div className="relative w-14 h-14 rounded-xl bg-white border border-border/50 text-primary flex items-center justify-center shadow-sm group-hover:bg-primary group-hover:text-white group-hover:scale-110 transition-all duration-500 shrink-0">
+                  <PrimaryIcon size={28} />
+                </div>
+                <div className="flex-1 relative">
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-sm font-black text-secondary/20 tracking-tighter">
+                      {primaryService.number}
+                    </span>
+                    <span className="text-[11px] font-bold uppercase tracking-widest text-primary">
+                      Por aquí se empieza
+                    </span>
+                  </div>
+                  <h3 className="text-lg sm:text-xl md:text-2xl font-bold mb-2 text-secondary leading-tight">
+                    {primaryService.title}
+                  </h3>
+                  <p className="text-secondary/60 font-light leading-relaxed text-sm italic">
+                    “{primaryService.quote}”
+                  </p>
+                  <span className="mt-4 text-xs font-bold uppercase tracking-wider text-primary inline-flex items-center gap-2">
+                    Ver en detalle
+                    <ArrowRight size={14} className="transition-transform group-hover:translate-x-1" />
+                  </span>
+                </div>
+                <ServiceVisual
+                  slug={primaryService.slug}
+                  scale={0.85}
+                  className="relative w-full md:w-[260px] shrink-0"
+                />
+              </SpotlightCard>
+            </RevealItem>
+
+            {otherServices.map((service) => {
+              const Icon = service.icon;
+              return (
+                <RevealItem key={service.slug}>
+                  <SpotlightCard className="group card-pad h-full rounded-2xl bg-muted border border-border/50 hover:bg-white hover:shadow-2xl hover:border-primary/30 transition-all duration-500 overflow-hidden flex flex-col">
+                    <Link
+                      href={`/servicios#${service.slug}`}
+                      className="absolute inset-0 z-20"
+                      aria-label={service.title}
+                    />
+                    {/* Miniatura animada con el icono y el número superpuestos */}
+                    <ServiceVisual slug={service.slug} scale={0.78} className="relative mb-5">
+                      <div className="absolute inset-x-3 top-3 flex items-start justify-between">
+                        <span className="w-9 h-9 rounded-lg bg-white border border-border/60 text-primary flex items-center justify-center shadow-sm group-hover:bg-primary group-hover:text-white transition-colors duration-500">
+                          <Icon size={18} />
+                        </span>
+                        <span className="text-2xl font-black text-secondary/15 tracking-tighter leading-none transition-colors duration-500 group-hover:text-primary/30">
+                          {service.number}
+                        </span>
+                      </div>
+                    </ServiceVisual>
+
+                    <h3 className="relative text-xl font-bold mb-3 text-secondary leading-tight">
+                      {service.title}
+                    </h3>
+                    <p className="relative text-secondary/60 font-light leading-relaxed text-sm italic mb-4">
+                      “{service.quote}”
+                    </p>
+                    <span className="relative mt-auto pt-2 text-xs font-bold uppercase tracking-wider text-primary inline-flex items-center gap-2 lg:opacity-0 lg:group-hover:opacity-100 lg:-translate-x-2 lg:group-hover:translate-x-0 transition-all duration-300">
+                      Ver en detalle <ArrowRight size={14} />
+                    </span>
+                  </SpotlightCard>
+                </RevealItem>
+              );
+            })}
+          </RevealGroup>
+
+          {/* CTA a lo ancho, fuera de la grilla de servicios */}
+          <Reveal delay={0.1}>
+            <div className="mt-6 relative overflow-hidden rounded-2xl bg-ink text-white card-pad md:p-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+              <div className="absolute inset-0 bg-grid opacity-[0.35] mask-fade-radial" aria-hidden />
+              <div className="relative max-w-2xl">
+                <h3 className="text-lg sm:text-xl md:text-2xl font-black mb-2 leading-tight">
+                  ¿No sabe por dónde empezar?
+                </h3>
+                <p className="text-white/60 font-light text-sm md:text-base leading-relaxed">
+                  Empecemos por una conversación de 30 minutos. Le decimos con franqueza si hay algo
+                  que valga la pena resolver.
+                </p>
+              </div>
+              <Link href="/cotizar" className="relative shrink-0">
+                <Button variant="accent" size="lg" className="shine h-12 px-8 text-sm w-full md:w-auto group">
+                  Hablemos
+                  <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
                 </Button>
               </Link>
             </div>
-          </motion.div>
+          </Reveal>
         </div>
       </section>
 
-      {/* 2. Partners & Technologies Carousel */}
-      <section className="py-10 bg-secondary/95 border-t border-primary/20 relative z-20 overflow-hidden">
-         <div className="container mx-auto px-4">
-            <p className="text-center text-xs font-bold uppercase tracking-widest text-white/40 mb-6">Stack Tecnológico</p>
-            <div 
-               className="relative w-full overflow-hidden whitespace-nowrap"
-               style={{ maskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)', WebkitMaskImage: 'linear-gradient(to right, transparent, black 10%, black 90%, transparent)' }}
-            >
-               <motion.div 
-                 className="flex w-max"
-                 animate={{ x: ["0%", "-50%"] }}
-                 transition={{ ease: "linear", duration: 40, repeat: Infinity }}
-               >
-                 {[...TECH_ITEMS, ...TECH_ITEMS].map((tech, i) => (
-                    <div key={i} className="flex items-center gap-4 px-12 text-white/60 hover:text-white transition-colors duration-300">
-                       {tech.icon}
-                       <span className="font-semibold text-lg md:text-xl tracking-wider uppercase">{tech.name}</span>
-                    </div>
-                 ))}
-               </motion.div>
-            </div>
-         </div>
-      </section>
-
-      {/* 3. Featured Services */}
-      <section className="py-24 bg-white text-secondary">
-        <div className="container mx-auto px-4 md:px-6">
-          <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-16">
-            <div className="max-w-2xl">
-              <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-4">Ingeniería <span className="text-primary">Evolutiva.</span></h2>
-              <p className="text-lg text-secondary/70 font-light">
-                Solucionamos cuellos de botella empresariales con automatizaciones y desarrollos de software construidos por expertos, utilizando arquitecturas escalables.
-              </p>
-            </div>
-            <Link href="/servicios" className="font-semibold text-primary hover:text-accent uppercase tracking-wider inline-flex items-center gap-2 group transition-colors">
-              Ver ecosistema <ArrowRight className="w-5 h-5 transform group-hover:translate-x-1 transition-transform" />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {SERVICES.map((service, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.5, delay: i * 0.1 }}
-                className="group p-8 rounded-2xl bg-muted border border-border/50 hover:bg-white hover:shadow-2xl hover:border-primary/30 transition-all cursor-pointer relative overflow-hidden"
-              >
-                <div className="absolute top-0 right-0 p-4 opacity-0 group-hover:opacity-10 transition-opacity">
-                   {service.icon}
-                </div>
-                <div className="w-16 h-16 rounded-xl bg-white border border-border/50 text-primary flex items-center justify-center mb-6 group-hover:bg-primary group-hover:text-white transition-colors shadow-sm group-hover:shadow-primary/30 group-hover:-translate-y-1">
-                  {service.icon}
-                </div>
-                <h3 className="text-xl font-bold mb-3 text-secondary">{service.title}</h3>
-                <p className="text-secondary/60 font-light leading-relaxed">
-                  {service.desc}
-                </p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 4. Why Voltac */}
-      <section className="py-24 bg-secondary text-white overflow-hidden relative">
+      {/* 4. Por qué Voltac */}
+      <section className="py-16 sm:py-20 md:py-24 bg-secondary text-white overflow-hidden relative">
+        <div className="absolute inset-0 bg-grid opacity-[0.25] mask-fade-y pointer-events-none" aria-hidden />
         <div className="absolute top-0 right-0 w-1/2 h-full bg-primary/10 blur-[150px] rounded-full" />
+
         <div className="container mx-auto px-4 md:px-6 relative z-10">
-          <div className="grid lg:grid-cols-2 gap-16 items-center">
+          <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
             <div className="space-y-8">
-              <h2 className="text-4xl md:text-5xl font-black tracking-tight">
-                ¿Por qué <span className="text-primary">Voltac?</span>
-              </h2>
-              <ul className="space-y-6">
-                {[
-                  { title: "Escalabilidad Cloud First", desc: "Desplegamos en AWS y Vercel asegurando que tu plataforma soporte 100 o 1 Millón de usuarios." },
-                  { title: "Código Limpio y Mantenible", desc: "Desarrollamos con convenciones estrictas (SOLID, Clean Architecture) para facilitar futuras actualizaciones." },
-                  { title: "Tiempos Ágiles (Scrum)", desc: "Entregables funcionales cada 2 semanas para que valides el ROI rápidamente." },
-                  { title: "Innovación Activa", desc: "Integración directa con los modelos de lenguaje más recientes (GPT-4o, Claude 3)." },
-                ].map((item, i) => (
-                  <motion.li
-                    key={i}
-                    initial={{ opacity: 0, x: -20 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ duration: 0.5, delay: i * 0.1 }}
-                    className="flex gap-4 items-start"
-                  >
-                    <div className="mt-1 bg-primary/20 p-2 rounded-lg text-accent border border-primary/30">
-                      <Zap size={20} />
+              <TextReveal
+                as="h2"
+                className="display-2"
+                segments={[{ text: "¿Por qué" }, { text: "Voltac?", highlight: true }]}
+              />
+              <Reveal delay={0.1}>
+                <p className="lead text-white/70">
+                  Nuestro origen está en la industria, y de ahí viene nuestra forma de trabajar:
+                  primero entendemos cómo funciona el negocio, después elegimos la tecnología. Nunca
+                  al revés. El resultado es siempre el mismo: menos horas perdidas, menos errores y
+                  más capacidad de atender sin contratar más personal.
+                </p>
+              </Reveal>
+
+              <RevealGroup className="space-y-6" stagger={0.1}>
+                {PILLARS.map((item) => (
+                  <RevealItem key={item.title} className="flex gap-4 items-start group">
+                    <div className="mt-1 bg-primary/20 p-2 rounded-lg text-accent border border-primary/30 group-hover:bg-primary group-hover:text-white group-hover:scale-110 transition-all duration-400">
+                      <Check size={20} />
                     </div>
                     <div>
-                      <h4 className="text-xl font-bold mb-1 text-white">{item.title}</h4>
-                      <p className="text-white/60 font-light text-sm md:text-base leading-relaxed">{item.desc}</p>
+                      <h3 className="text-xl font-bold mb-1 text-white">{item.title}</h3>
+                      <p className="text-white/60 font-light text-sm md:text-base leading-relaxed">
+                        {item.description}
+                      </p>
                     </div>
-                  </motion.li>
+                  </RevealItem>
                 ))}
-              </ul>
+              </RevealGroup>
             </div>
-            <div className="relative h-[600px] rounded-2xl overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(37,99,235,0.15)] group">
-              <Image src="/Voltac_enviroment.png" alt="Desarrollo Tecnológico" fill className="object-cover transition-transform duration-1000 group-hover:scale-105" />
-              <div className="absolute inset-0 bg-gradient-to-t from-secondary via-secondary/20 to-transparent" />
-            </div>
+
+            <Reveal direction="left" distance={40} delay={0.15}>
+              <div className="relative h-[280px] sm:h-[380px] lg:h-[600px] rounded-2xl overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(37,99,235,0.15)] group">
+                <Image
+                  src="/Voltac_enviroment.png"
+                  alt="Equipo de Voltac Systems trabajando en soluciones de automatización"
+                  fill
+                  className="object-cover transition-transform duration-[1.4s] ease-out group-hover:scale-110"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-secondary via-secondary/20 to-transparent" />
+                {/* Marco técnico sobre la imagen */}
+                <div className="absolute inset-4 border border-white/10 rounded-xl pointer-events-none" aria-hidden />
+              </div>
+            </Reveal>
           </div>
         </div>
       </section>
 
-      {/* 5. Metrics & Impact */}
-      <section className="py-24 bg-muted border-y border-border/50 relative overflow-hidden">
-         <div className="absolute -left-32 -top-32 w-96 h-96 bg-primary/5 rounded-full blur-3xl"></div>
+      {/* 5. A quién atendemos */}
+      <section className="py-16 sm:py-20 md:py-24 bg-muted border-y border-border/50 relative overflow-hidden">
+        <div className="absolute -left-32 -top-32 w-96 h-96 bg-primary/5 rounded-full blur-3xl" />
         <div className="container mx-auto px-4 md:px-6 relative z-10">
-          <div className="text-center mb-16 max-w-2xl mx-auto">
-            <h2 className="text-4xl font-black text-secondary tracking-tight mb-4">Métricas de <span className="text-primary">Impacto.</span></h2>
-            <p className="text-secondary/60">Resultados cuantificables en los negocios de nuestros clientes tras implementar nuestras arquitecturas y automatizaciones AI.</p>
+          <div className="text-center mb-12 md:mb-16 max-w-2xl mx-auto">
+            <Reveal>
+              <p className="eyebrow mb-4">A quién atendemos</p>
+            </Reveal>
+            <TextReveal
+              as="h2"
+              className="display-2 text-secondary mb-4"
+              segments={[{ text: "Sectores donde" }, { text: "ya resolvemos.", highlight: true }]}
+            />
+            <Reveal delay={0.12}>
+              <p className="lead text-secondary/60">
+                La tecnología es la misma; lo que cambia es el problema de cada oficio.
+              </p>
+            </Reveal>
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-            {METRICS.map((metric, i) => (
-               <motion.div
-               key={i}
-               initial={{ opacity: 0, y: 20 }}
-               whileInView={{ opacity: 1, y: 0 }}
-               viewport={{ once: true }}
-               transition={{ duration: 0.6, delay: i * 0.1 }}
-               className="flex flex-col items-center justify-center text-center space-y-3 bg-white p-8 rounded-[2rem] border border-border shadow-sm hover:shadow-lg transition-all"
-             >
-               <div className="text-5xl font-black text-primary bg-clip-text">
-                 <span className="text-3xl">{metric.prefix}</span>
-                 {metric.value}
-                 <span className="text-3xl">{metric.suffix}</span>
-               </div>
-               <div className="text-xs font-bold text-secondary/60 uppercase tracking-widest">{metric.label}</div>
-             </motion.div>
-            ))}
-          </div>
-          
-          <div className="col-span-full mt-16 text-center">
-             <Link href="/proyectos">
-                <Button variant="outline" className="border-secondary text-secondary hover:bg-secondary hover:text-white rounded-full font-bold uppercase tracking-wider h-14 px-10 text-sm gap-3 transition-colors shadow-sm">
-                   Ver Casos de Éxito Detallados <Activity size={18}/>
-                </Button>
-             </Link>
-          </div>
+
+          <RevealGroup className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6" stagger={0.06}>
+            {SECTORS.map((sector) => {
+              const Icon = sector.icon;
+              return (
+                <RevealItem key={sector.name}>
+                  <SpotlightCard
+                    className="bg-white card-pad h-full rounded-[2rem] border border-border shadow-sm hover:shadow-xl hover:border-primary/30 hover:-translate-y-1 transition-all duration-400 flex flex-col group"
+                    radius={200}
+                  >
+                    <div className="relative w-12 h-12 rounded-xl bg-muted text-primary flex items-center justify-center mb-5 group-hover:bg-primary group-hover:text-white transition-colors duration-400">
+                      <Icon size={24} />
+                    </div>
+                    <h3 className="relative font-black text-secondary mb-3 leading-tight">
+                      {sector.name}
+                    </h3>
+                    <p className="relative text-sm text-secondary/60 font-light leading-relaxed">
+                      {sector.description}
+                    </p>
+                  </SpotlightCard>
+                </RevealItem>
+              );
+            })}
+          </RevealGroup>
+
+          <Reveal delay={0.1} className="mt-16 text-center">
+            <Link href="/proyectos">
+              <Button
+                variant="outline"
+                className="shine border-secondary text-secondary hover:bg-secondary hover:text-white rounded-full font-bold uppercase tracking-wider h-12 px-8 text-xs gap-3 transition-colors shadow-sm"
+              >
+                Ver trabajos que ya entregamos <Activity size={16} />
+              </Button>
+            </Link>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* 6. CTA final */}
+      <section className="py-16 sm:py-20 md:py-24 bg-white">
+        <div className="container mx-auto px-4 md:px-6">
+          <Reveal>
+            <div className="bg-secondary text-white rounded-[2rem] p-8 sm:p-10 md:p-16 relative overflow-hidden">
+              <div className="absolute inset-0 bg-grid opacity-30 mask-fade-radial" aria-hidden />
+              {!reduced && (
+                <motion.div
+                  aria-hidden
+                  className="absolute -right-20 -bottom-20 w-96 h-96 bg-primary/25 rounded-full blur-[100px]"
+                  animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0.8, 0.5] }}
+                  transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+                />
+              )}
+              <div className="relative z-10 max-w-3xl">
+                <TextReveal
+                  as="h2"
+                  className="display-2 mb-6"
+                  segments={[{ text: "Empecemos por una conversación de" }, { text: "30 minutos.", highlight: true }]}
+                />
+                <Reveal delay={0.15}>
+                  <p className="lead text-white/70 mb-10">
+                    Cuéntenos qué tarea le está consumiendo más tiempo, qué cliente se le está
+                    escapando o qué requisito cumple con angustia cada mes. Le decimos con franqueza
+                    si tiene solución, cuál sería y en cuánto tiempo se vería el resultado. Sin costo
+                    y sin compromiso.
+                  </p>
+                </Reveal>
+                <Reveal delay={0.25}>
+                  <Link href="/cotizar">
+                    <Button variant="accent" size="lg" className="shine h-12 px-8 rounded-full text-sm group">
+                      Quiero esa conversación
+                      <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
+                    </Button>
+                  </Link>
+                </Reveal>
+              </div>
+            </div>
+          </Reveal>
         </div>
       </section>
     </div>

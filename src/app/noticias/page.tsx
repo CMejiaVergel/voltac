@@ -5,8 +5,8 @@ import ClientNoticias from "./ClientNoticias";
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: "Blog Técnico y Artículos | Voltac Systems",
-  description: "Explora artículos sobre Inteligencia Artificial B2B, Ingeniería Serveless y Transformación Digital.",
+  title: "Noticias y aprendizajes | Voltac Systems",
+  description: "Lo que aprendemos en proyectos reales, explicado sin tecnicismos: qué se puede automatizar hoy en una empresa, qué todavía no conviene y cómo saber por dónde empezar.",
 };
 
 export default async function NoticiasPage() {

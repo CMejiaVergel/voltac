@@ -5,8 +5,8 @@ import ClientProyectos from "./ClientProyectos";
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
-  title: "Portafolio y Proyectos | Voltac Systems",
-  description: "Portafolio tech construido por Voltac: Interfaces Inteligentes, Agentes IA B2B y Desarrollo de Software escalable.",
+  title: "Trabajos entregados | Voltac Systems",
+  description: "Casos reales de organizaciones que hoy dedican menos horas al mismo trabajo: qué les estaba costando tiempo, qué hicimos y qué cambió después.",
 };
 
 export default async function ProyectosPage() {

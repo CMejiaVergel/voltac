@@ -1,24 +1,39 @@
 # Voltac Systems
 
 ## Quiénes somos
-Voltac Systems es una empresa de tecnología con sede en Colombia, especializada en el desarrollo de software a medida, inteligencia artificial aplicada a negocios B2B, automatización comercial y hardware IoT. Fundada en 2024, trabaja con empresas que buscan transformación digital real y medible.
+Voltac Systems S.A.S. (NIT 901.734.603) es una compañía de tecnología con sede en Colombia. Se dedica a encontrar las tareas que le están consumiendo horas a una organización y hacer que se resuelvan solas, con herramientas de inteligencia artificial y programas hechos a la medida. Fundada en 2024. Opera desde Colombia y desarrolla proyectos en toda Latinoamérica.
 
-## Servicios principales
-- Desarrollo de Software Web y SAAS a medida
-- Agentes de IA y sistemas RAG (Recuperación Aumentada por Generación)
-- Automatización comercial (WhatsApp, Instagram, CRM)
-- Ingeniería de Datos y Cloud (AWS, Vercel, Docker)
-- Hardware, IoT e integraciones industriales (Modbus, RS485)
-- Consultoría tecnológica y auditoría de código
+Su origen está en la industria, y de ahí viene su forma de trabajar: primero entienden cómo funciona el negocio, después eligen la tecnología. Nunca al revés.
 
-## Stack tecnológico
-Next.js, React, Python, FastAPI, Node.js, PostgreSQL, Docker, AWS, OpenAI, Anthropic Claude, Arduino, C++
+## Servicios
+1. **Diagnóstico, consultoría y formación** — Revisión de la operación y de las tareas que más tiempo consumen, plan a 90 días ordenado por retorno, cálculo del tiempo y dinero recuperable, capacitación práctica al equipo.
+2. **Automatización del trabajo repetitivo** — Flujos de trabajo automáticos, integración entre sistemas separados, lectura y clasificación automática de documentos, generación de documentos desde plantillas propias. Aplicado en derecho, contabilidad y tributaria, asesoría financiera, salud, comercio y distribución. Incluye la opción de modelos privados de IA alojados en infraestructura propia cuando hay datos sujetos a reserva profesional.
+3. **Atención automática de clientes, 24 horas** — Asistente que atiende por WhatsApp, redes o sitio web a cualquier hora: responde preguntas frecuentes, agenda citas, toma pedidos, arma cotizaciones, filtra prospectos y escala a una persona cuando hace falta.
+4. **Programas y aplicaciones hechos a la medida** — Sistemas internos de gestión, portales de autoconsulta para clientes, aplicaciones para personal en campo, cobros y pagos en línea, conexión con los programas que la empresa ya usa.
+5. **Información ordenada para decidir mejor** — Tablero único con las cifras que importan, informes que se generan y envían solos, consulta de documentos propios en lenguaje natural, alertas por desviaciones, proyecciones sobre datos históricos.
+6. **Presencia digital y consecución de clientes** — Sitios orientados a generar solicitudes, visibilidad en buscadores y en asistentes de IA, contacto y seguimiento automático a clientes potenciales, medición del origen de cada solicitud.
+7. **Digitalización de operaciones y cumplimiento normativo** — Medición remota de equipos y consumos, seguimiento en vivo de planta, gemelos digitales, reportes a entidades de control armados automáticamente, trazabilidad verificable de cada dato reportado.
 
-## Propuesta de valor
-Reducción de tiempos operativos hasta 85%, soporte a más de 100K usuarios, y más de 300% de mejora en automatización de procesos comerciales.
+## Sectores atendidos
+Servicios profesionales (firmas de abogados, contadores, asesores tributarios y financieros), industria y manufactura, comercio y distribución, salud y bienestar, educación y formación, transporte y logística, construcción e inmobiliario, sector público y regulado.
+
+## Paquetes de arranque
+- **Diagnóstico Voltac** (2 a 4 semanas): punto de partida sin riesgo; lo invertido se abona por completo si se decide continuar.
+- **Asistente de Atención 24/7** (3 a 4 semanas): el servicio que arranca más rápido.
+- **Arranque Digital** (6 a 8 semanas): página web que genera solicitudes + atención automática.
+- **Operación Ordenada** (8 a 12 semanas): automatización de procesos críticos + tablero de control.
+
+## Cómo trabajan
+1. Conversación de diagnóstico de 30 minutos, sin costo y sin compromiso.
+2. Propuesta con alcance, tiempo y precio claros.
+3. Implementación por entregas: cada dos semanas hay algo que el cliente puede probar.
+4. Medición de lo ganado, documentación y capacitación al equipo para que opere sin depender del proveedor.
+
+## Compromisos
+Resultados en semanas, no en años. Conversaciones sobre resultados, no sobre tecnología. Se empieza por la mejora de retorno más rápido. Se documenta y se capacita para que el equipo del cliente quede autónomo.
 
 ## Ubicación y cobertura
-Colombia. Servicio remoto en toda Latinoamérica.
+Colombia (Cartagena, Sincelejo, Barranquilla y Medellín). Proyectos en toda Latinoamérica.
 
 ## Contacto y web
-https://voltac.com.co | contacto@voltac.com.co
+https://voltac.com.co | sales@voltac.com.co | +57 313 625 3584

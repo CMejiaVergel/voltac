@@ -6,6 +6,13 @@ build/
 .env
 .env.local
 
+# Artefactos de compilación de TypeScript
+tsconfig.tsbuildinfo
+
+# Configuración local de Claude Code (rutas y puertos propios de cada máquina).
+# .claude/launch.json sí se versiona: define cómo levantar el servidor de dev.
+.claude/settings.local.json
+
 # SQLite database — each environment manages its own instance
 *.db
 *.db-shm

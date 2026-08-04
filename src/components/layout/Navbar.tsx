@@ -7,6 +7,7 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
+import { ScrollProgress } from "@/components/motion/ScrollProgress";
 
 const NAV_LINKS = [
   { name: "Inicio", href: "/" },
@@ -35,6 +36,19 @@ export function Navbar() {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  // Con el menú móvil abierto la página de atrás no debe desplazarse.
+  React.useEffect(() => {
+    document.body.style.overflow = mobileMenuOpen ? "hidden" : "";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [mobileMenuOpen]);
+
+  // Cambiar de página cierra el menú móvil.
+  React.useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
 
   const hasDarkBg = (isHome || isNewsArticle) && !scrolled;
   const isSolidNav = scrolled;
@@ -82,7 +96,7 @@ export function Navbar() {
         <div className="hidden lg:flex items-center gap-4">
           <Link href="/cotizar">
             <Button variant="accent" className="shadow-accent/20 text-secondary border-none hover:scale-105 transition-transform">
-              Hablar con un Asesor
+              Agendar conversación
             </Button>
           </Link>
         </div>
@@ -94,6 +108,9 @@ export function Navbar() {
         >
           {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
         </button>
+
+        {/* Progreso de lectura, solo cuando la barra está sólida */}
+        {isSolidNav && <ScrollProgress />}
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
@@ -110,7 +127,7 @@ export function Navbar() {
             ))}
             <Link href="/cotizar" onClick={() => setMobileMenuOpen(false)}>
               <Button variant="accent" size="lg" className="mt-8 text-secondary">
-                Hablar con un Asesor
+                Agendar conversación
               </Button>
             </Link>
           </div>

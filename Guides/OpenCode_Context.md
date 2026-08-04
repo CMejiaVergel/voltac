@@ -40,6 +40,7 @@ c:\Users\mejia\Desktop\VOLTAC_SYSTEMS\VOLTAC\Website\
     │   ├── api/             # Backend API Routes
     │   └── (públicas)       # Páginas web públicas (servicios, proyectos, noticias, contacto)
     ├── components/          # Componentes reusables de React (UI y Gráficos)
+    ├── content/             # Contenido comercial tipado (portafolio de servicios)
     ├── lib/                 # Utilidades (db.ts, generadores PDF, helpers)
     └── services/            # Lógica de negocio pesada (ej. invoice-parser)
 ```
@@ -122,7 +123,36 @@ La UI de facturación (`FacturacionPage`) incluye un "PDF Preview Card" que resa
    pm2 restart voltac-systems
    ```
 
-## 7. Áreas para Trabajo Futuro de OpenCode
+## 7. Capa de Contenido Comercial (`src/content/services.ts`)
+
+Desde agosto de 2026 el sitio público **no tiene textos de servicios escritos dentro de las pantallas**. Todo el portafolio comercial vive en un único módulo tipado:
+
+**Ubicación**: `src/content/services.ts`
+
+| Export | Qué contiene | Dónde se consume |
+| --- | --- | --- |
+| `SERVICES` | Los 7 servicios del Portafolio 2026: `number`, `slug`, `title`, `shortTitle`, `quote`, `description`, `practice[]` ("Así se ve en la práctica"), `technical` (Anexo A), `icon` | Home, `/servicios`, `/cotizar`, Footer, JSON-LD del layout |
+| `PILLARS` | Los 4 compromisos ("Resultados en semanas", "Hablamos claro", …) | Sección "¿Por qué Voltac?" del home |
+| `SECTORS` | Los 8 sectores atendidos | Sección "A quién atendemos" del home |
+| `PACKAGES` | Los 4 paquetes de arranque, con `relatedSlug` y `featured` | `/servicios` |
+| `PROCESS_STEPS` | "De la conversación al resultado" (4 pasos) | `/servicios` y columna izquierda de `/cotizar` |
+| `GLOSSARY` | Glosario rápido (8 términos) | `/servicios` |
+| `CONTACT` | Correos, teléfono y dominio | Footer, `/cotizar`, JSON-LD |
+
+**Reglas para escalar sin romper nada:**
+
+1. **Un servicio nuevo = un objeto nuevo en `SERVICES`.** El home, el índice de `/servicios`, el select de `/cotizar`, el footer y los datos estructurados se actualizan solos. El grid del home está pensado para `n + 1` celdas (la última es la tarjeta CTA).
+2. **El `slug` es contrato público.** Se usa como ancla (`/servicios#<slug>`), como parámetro de preselección (`/cotizar?servicio=<slug>`) y como `url` en el JSON-LD. Cambiarlo rompe enlaces ya publicados; si hay que cambiarlo, hay que actualizar también los `relatedSlug` de `PACKAGES`.
+3. **`slug` → base natural para páginas por servicio.** Si más adelante se crea `/servicios/[slug]`, la data ya está lista: basta con `SERVICES.find(s => s.slug === params.slug)` y `generateStaticParams()`.
+4. **`icon` guarda la *referencia* al componente de `lucide-react`, no JSX.** Por eso el módulo puede importarse tanto desde Server Components (layout, `/servicios`) como desde Client Components sin marcarlo `"use client"`.
+5. **Lo que se envía al CRM.** El formulario de `/cotizar` guarda en `quotes.projectType` el `shortTitle` del servicio elegido (o `"Aún no lo sé"`), y ya captura `phone`. Si se renombra un `shortTitle`, los leads históricos conservan el texto anterior.
+
+### Tono y lenguaje del sitio público
+El copy sigue el **Portafolio de Servicios 2026** (documento comercial oficial): trato de **usted**, foco en el problema del cliente y no en la tecnología, cero jerga técnica en el nivel superior. El detalle técnico existe pero está subordinado: en `/servicios` vive dentro de un `<details>` ("Detalle técnico") por servicio, alimentado por el campo `technical`. El glosario cumple la misma función: traducir el vocabulario técnico al del cliente.
+
+---
+
+## 8. Áreas para Trabajo Futuro de OpenCode
 - Refinar los patrones RegEx en `siigo-parser.ts` en caso de que Siigo altere su plantilla de exportación.
 - Implementar sanitización de parámetros SQL en `/api/accounting/export/route.ts` para mitigar cualquier riesgo residual de inyección (actualmente se confía en la UI, pero el parámetro `type` es interpolado crudo).
 - Mejoras de UI/UX en las pantallas del CRUD.

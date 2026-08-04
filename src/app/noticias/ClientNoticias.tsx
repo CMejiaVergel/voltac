@@ -13,20 +13,21 @@ export default function ClientNoticias({ newsList }: { newsList: any[] }) {
       <section className="bg-secondary text-white py-20 relative overflow-hidden">
         <div className="absolute inset-0 bg-[url('https://transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
         <div className="container mx-auto px-4 text-center max-w-3xl relative z-10">
-          <h1 className="text-4xl md:text-5xl font-black mb-6 tracking-tight">
-            Blog <span className="text-primary">Técnico.</span>
+          <h1 className="display-2 mb-6">
+            Noticias y <span className="text-primary">aprendizajes.</span>
           </h1>
-          <p className="text-lg text-white/80 font-light leading-relaxed">
-            Actualidad y conocimiento curado sobre Inteligencia artificial, desarrollo de software automatización B2B. Optimiza tu negocio con información valiosa de nuestros top ingenieros.
+          <p className="lead text-white/80">
+            Lo que vamos aprendiendo en proyectos reales, explicado sin tecnicismos: qué se puede
+            automatizar hoy, qué todavía no conviene y cómo saber por dónde empezar.
           </p>
         </div>
       </section>
 
       {/* Grid */}
-      <section className="py-24">
+      <section className="py-16 sm:py-20 md:py-24">
         <div className="container mx-auto px-4 md:px-6">
           {newsList.length === 0 ? (
-             <div className="py-20 text-center text-secondary/50 font-medium">Aún no hay artículos publicados en el blog.</div>
+             <div className="py-14 sm:py-16 md:py-20 text-center text-secondary/50 font-medium">Aún no hay artículos publicados en el blog.</div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               {newsList.map((news, i) => {

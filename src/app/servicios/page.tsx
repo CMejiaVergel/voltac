@@ -1,55 +1,187 @@
 import React from "react";
-import Image from "next/image";
-import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { ServiciosGrid } from "./ServiciosClient";
+import { Button } from "@/components/ui/button";
+import { ServiciosDetallados, PaquetesArranque, Glosario } from "./ServiciosClient";
+import { TechGrid } from "@/components/motion/TechGrid";
+import { TextReveal } from "@/components/motion/TextReveal";
+import { Reveal } from "@/components/motion/Reveal";
+import { ProcessTimeline } from "@/components/motion/ProcessTimeline";
+import { SERVICES, CONTACT } from "@/content/services";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Servicios Tecnológicos",
-  description: "Ecosistema de servicios de Voltac Systems: Desarrollo custom, IA, automatización y cloud computing.",
-  keywords: ["servicios desarrollo", "software custom", "inteligencia artificial", "automatización", "cloud computing", "iot", "consultoría tecnológica"],
+  title: "Servicios",
+  description:
+    "Servicios para que su organización deje de perder horas en trabajo manual: diagnóstico, automatización, atención automática de clientes 24 horas, programas a la medida, información para decidir, presencia digital y cumplimiento normativo.",
+  keywords: [
+    "automatización de tareas repetitivas",
+    "asistente de whatsapp para empresas",
+    "software a la medida colombia",
+    "consultoría en inteligencia artificial",
+    "tableros de control empresariales",
+    "reportes a entidades de control",
+    "digitalización de operaciones",
+  ],
+};
+
+const serviceCatalogSchema = {
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  name: "Portafolio de servicios Voltac Systems 2026",
+  description:
+    "Servicios de tecnología orientados a reducir trabajo manual, atender clientes de forma automática y cumplir requisitos normativos a tiempo.",
+  itemListElement: SERVICES.map((svc, i) => ({
+    "@type": "ListItem",
+    position: i + 1,
+    item: {
+      "@type": "Service",
+      name: svc.title,
+      description: svc.description,
+      url: `${CONTACT.site}/servicios#${svc.slug}`,
+      areaServed: ["Colombia", "Latinoamérica"],
+      provider: { "@type": "Organization", name: "Voltac Systems" },
+    },
+  })),
 };
 
 export default function ServiciosPage() {
   return (
     <div className="flex flex-col min-h-screen pt-24 bg-white text-secondary">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceCatalogSchema) }}
+      />
+
       {/* Header */}
-      <section className="bg-secondary text-white py-24 relative overflow-hidden">
-        <div className="absolute inset-0 z-0">
-           <div className="absolute inset-0 bg-[url('https://transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
-           <div className="absolute top-0 w-full h-full bg-gradient-to-b from-primary/20 to-transparent"></div>
-        </div>
+      <section
+        data-techgrid-root
+        className="bg-secondary text-white py-16 sm:py-20 md:py-24 relative overflow-hidden"
+      >
+        <TechGrid className="absolute inset-0 z-0 w-full h-full pointer-events-none mask-fade-radial opacity-60" />
+        <div className="absolute top-0 w-full h-full bg-gradient-to-b from-primary/20 to-transparent z-0" />
+
         <div className="container mx-auto px-4 md:px-6 relative z-10 text-center max-w-4xl">
-          <h1 className="text-5xl md:text-6xl font-black mb-6 tracking-tighter">
-            Ecosistema de <span className="text-primary">Servicios Tecnológicos.</span>
-          </h1>
-          <p className="text-xl text-white/80 font-light leading-relaxed">
-            Metodologías ágiles (Scrum), desarrollo Cloud First y adopción de Inteligencia Artificial como pilar central, permitiendo escalar tu ventaja competitiva.
-          </p>
+          <Reveal>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-accent mb-5 sm:mb-6">
+              Lo que hacemos
+            </p>
+          </Reveal>
+          <TextReveal
+            as="h1"
+            className="display-2 mb-6"
+            segments={[{ text: "Servicios con" }, { text: "un mismo objetivo.", highlight: true }]}
+          />
+          <Reveal delay={0.2}>
+            <p className="lead text-white/80">
+              Cada servicio resuelve un problema concreto. Se contratan por separado o combinados,
+              según lo que hoy más le esté costando. Si no sabe por dónde empezar, se empieza por el
+              primero.
+            </p>
+          </Reveal>
+        </div>
+
+        <div className="beam absolute bottom-0 left-0 right-0" aria-hidden />
+      </section>
+
+      {/* Servicios en detalle */}
+      <section className="py-16 sm:py-20 md:py-24 relative overflow-hidden">
+        <div className="absolute left-0 top-1/2 w-96 h-96 bg-primary/5 rounded-full blur-[100px] -translate-y-1/2"></div>
+        <div className="absolute right-0 bottom-0 w-96 h-96 bg-accent/5 rounded-full blur-[100px]"></div>
+
+        <div className="container mx-auto px-4 md:px-6 relative z-10">
+          <ServiciosDetallados />
         </div>
       </section>
 
-      {/* Services Grid Detailed */}
-      <section className="py-24 relative">
-         <div className="absolute left-0 top-1/2 w-96 h-96 bg-primary/5 rounded-full blur-[100px] -translate-y-1/2"></div>
-         <div className="absolute right-0 bottom-0 w-96 h-96 bg-accent/5 rounded-full blur-[100px]"></div>
-        
-        <div className="container mx-auto px-4 md:px-6 relative z-10">
-          <ServiciosGrid />
+      {/* Paquetes de arranque */}
+      <section className="py-16 sm:py-20 md:py-24 bg-muted border-y border-border/50">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="max-w-3xl mb-10 md:mb-16">
+            <Reveal>
+              <p className="eyebrow mb-4">Formas de empezar</p>
+            </Reveal>
+            <TextReveal
+              as="h2"
+              className="display-2 mb-4"
+              segments={[{ text: "Paquetes de" }, { text: "arranque.", highlight: true }]}
+            />
+            <Reveal delay={0.15}>
+              <p className="lead text-secondary/70">
+                Para quienes prefieren un punto de partida definido, con alcance y tiempo acotados.
+              </p>
+            </Reveal>
+          </div>
+          <PaquetesArranque />
+        </div>
+      </section>
+
+      {/* Cómo trabajamos */}
+      <section className="py-16 sm:py-20 md:py-24 bg-white">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="max-w-3xl mb-10 md:mb-16">
+            <Reveal>
+              <p className="eyebrow mb-4">Cómo trabajamos</p>
+            </Reveal>
+            <TextReveal
+              as="h2"
+              className="display-2"
+              segments={[{ text: "De la conversación" }, { text: "al resultado.", highlight: true }]}
+            />
+          </div>
+
+          <ProcessTimeline />
+        </div>
+      </section>
+
+      {/* Glosario */}
+      <section className="py-16 sm:py-20 md:py-24 bg-muted border-y border-border/50">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="max-w-3xl mb-10 md:mb-16">
+            <Reveal>
+              <p className="eyebrow mb-4">Para hablar el mismo idioma</p>
+            </Reveal>
+            <TextReveal
+              as="h2"
+              className="display-2 mb-4"
+              segments={[{ text: "Glosario" }, { text: "rápido.", highlight: true }]}
+            />
+            <Reveal delay={0.15}>
+              <p className="lead text-secondary/70">
+                Los términos que va a escuchar en cualquier conversación de tecnología, explicados
+                como se los explicaríamos a un cliente.
+              </p>
+            </Reveal>
+          </div>
+          <Glosario />
         </div>
       </section>
 
       {/* CTA final */}
-      <section className="py-24 bg-primary text-white text-center">
-        <div className="container mx-auto px-4">
-          <h2 className="text-4xl font-black mb-6">¿Tu requerimiento no está en la lista?</h2>
-          <p className="text-xl font-light mb-10 opacity-90 max-w-2xl mx-auto">
-            Somos ingenieros de principio a fin. Si puedes imaginar el flujo de trabajo lógico, nosotros podemos codificarlo e impulsarlo.
-          </p>
-          <Link href="/cotizar">
-            <Button variant="accent" size="lg" className="rounded-full h-14 px-10">Agendar Consultoría Técnica</Button>
-          </Link>
+      <section className="py-16 sm:py-20 md:py-24 bg-secondary text-white text-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-grid opacity-30 mask-fade-radial" aria-hidden />
+        <div className="container mx-auto px-4 relative z-10">
+          <TextReveal
+            as="h2"
+            className="display-2 mb-6"
+            segments={[{ text: "¿Su caso no aparece" }, { text: "en la lista?", highlight: true }]}
+          />
+          <Reveal delay={0.15}>
+            <p className="lead mb-10 opacity-90 max-w-2xl mx-auto">
+              Cuéntenos qué tarea le está consumiendo más tiempo. Le decimos con franqueza si tiene
+              solución, cuál sería y en cuánto tiempo se vería el resultado. Son 30 minutos, sin
+              costo y sin compromiso.
+            </p>
+          </Reveal>
+          <Reveal delay={0.25}>
+            <Link href="/cotizar">
+              <Button variant="accent" size="lg" className="shine rounded-full h-12 px-8 text-sm">
+                Agendar conversación
+              </Button>
+            </Link>
+            <p className="mt-8 text-sm text-white/70 font-light">
+              {CONTACT.email} · {CONTACT.phone}
+            </p>
+          </Reveal>
         </div>
       </section>
     </div>

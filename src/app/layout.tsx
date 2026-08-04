@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { SERVICES, CONTACT } from "@/content/services";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -12,11 +13,21 @@ const inter = Inter({
 export const metadata: Metadata = {
   metadataBase: new URL('https://voltac.com.co'),
   title: {
-    default: "Voltac Systems | IA, Automatización y Software a Medida",
+    default: "Voltac Systems | Más resultados, menos trabajo manual",
     template: "%s | Voltac Systems"
   },
-  description: "Aceleramos tu negocio con Inteligencia Artificial, Agentes Cognitivos y Software Web/App a medida. Transforma tus operaciones con automatización B2B.",
-  keywords: ["inteligencia artificial", "desarrollo web", "automatización b2b", "agentes de ventas", "iot", "desarrollo a medida", "colombia", "voltac systems"],
+  description: "Identificamos las tareas que le están costando horas a su organización y las convertimos en procesos que se hacen solos. Automatización, atención automática de clientes y software a la medida. Resultados en semanas.",
+  keywords: [
+    "automatizar tareas repetitivas empresa",
+    "asistente que atiende whatsapp 24 horas",
+    "software a la medida",
+    "reducir trabajo manual oficina",
+    "informes automáticos",
+    "reportes a entidades de control",
+    "inteligencia artificial para empresas",
+    "colombia",
+    "voltac systems",
+  ],
   openGraph: {
     type: 'website',
     locale: 'es_CO',
@@ -31,17 +42,33 @@ const organizationSchema = {
   "@context": "https://schema.org",
   "@type": "Organization",
   "name": "Voltac Systems",
+  "legalName": "Voltac Systems S.A.S.",
+  "taxID": "901.734.603",
   "url": "https://voltac.com.co",
   "logo": "https://voltac.com.co/Logo_fondo_oscuro.png",
-  "description": "Empresa colombiana especializada en Inteligencia Artificial, automatización B2B y desarrollo de software a medida.",
+  "description": "Compañía colombiana de tecnología. Identifica las tareas que consumen horas dentro de una organización y las convierte en procesos automáticos, con herramientas de inteligencia artificial y programas hechos a la medida.",
   "foundingDate": "2024",
   "foundingLocation": "Colombia",
   "areaServed": ["Colombia", "Latinoamérica"],
-  "serviceType": ["Desarrollo de Software", "Inteligencia Artificial", "Automatización", "IoT"],
+  "knowsLanguage": "es",
+  "hasOfferCatalog": {
+    "@type": "OfferCatalog",
+    "name": "Portafolio de servicios 2026",
+    "itemListElement": SERVICES.map((svc) => ({
+      "@type": "Offer",
+      "itemOffered": {
+        "@type": "Service",
+        "name": svc.title,
+        "description": svc.description,
+        "url": `https://voltac.com.co/servicios#${svc.slug}`,
+      },
+    })),
+  },
   "contactPoint": {
     "@type": "ContactPoint",
     "contactType": "ventas",
-    "email": "contacto@voltac.com.co",
+    "email": CONTACT.email,
+    "telephone": CONTACT.phone,
     "availableLanguage": "Spanish"
   },
   "sameAs": [
