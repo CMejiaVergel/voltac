@@ -7,7 +7,12 @@ import { ChevronRight, Clock, ArrowRight } from "lucide-react";
 import { SERVICES, PACKAGES, GLOSSARY } from "@/content/services";
 import { Reveal, RevealGroup, RevealItem, EASE } from "@/components/motion/Reveal";
 import { SpotlightCard } from "@/components/motion/SpotlightCard";
-import { ServiceVisual } from "@/components/motion/service-visuals";
+import dynamic from "next/dynamic";
+
+const ServiceVisual = dynamic(
+  () => import("@/components/motion/service-visuals").then((m) => m.ServiceVisual),
+  { ssr: false, loading: () => <div className="h-[162px] rounded-xl bg-white/40" /> },
+);
 
 export function ServiciosDetallados() {
   const reduced = useReducedMotion();

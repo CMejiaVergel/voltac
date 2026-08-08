@@ -5,6 +5,7 @@ import { LegalPage, LegalSection } from "@/components/layout/LegalPage";
 import { CONTACT } from "@/content/services";
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/politica-de-privacidad' },
   title: "Política de Privacidad",
   description:
     "Política de tratamiento de datos personales de Voltac Systems S.A.S., conforme a la Ley 1581 de 2012 y el Decreto 1074 de 2015.",

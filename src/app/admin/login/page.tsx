@@ -4,22 +4,30 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { login } from "./actions";
 
 export default function AdminLoginPage() {
   const router = useRouter();
   const [error, setError] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
 
-  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
+  /*
+   * Las credenciales ya no se comparan aqui: eso las publicaba en el bundle.
+   * Este formulario solo las envia; quien decide es el servidor, que responde
+   * con una cookie de sesion firmada.
+   */
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const user = fd.get("username");
-    const pass = fd.get("password");
-
-    if (user === "admin" && pass === "voltacsystems2026") {
-      localStorage.setItem("voltac_admin_auth", "true");
-      router.push("/admin");
-    } else {
-      setError("Credenciales incorrectas.");
+    setLoading(true);
+    setError("");
+    try {
+      const result = await login(undefined, new FormData(e.currentTarget));
+      if (result.error) setError(result.error);
+      else router.replace("/admin");
+    } catch {
+      setError("No se pudo contactar al servidor. Intente de nuevo.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -44,18 +52,18 @@ export default function AdminLoginPage() {
         <form onSubmit={handleLogin} className="space-y-6">
            <div className="space-y-2">
              <label className="text-xs font-bold uppercase tracking-wider text-white/50">Usuario</label>
-             <input name="username" type="text" className="w-full bg-secondary/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-primary transition-colors" placeholder="admin" />
+             <input name="username" type="text" className="w-full bg-secondary/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-primary transition-colors" placeholder="admin" autoComplete="username" required />
            </div>
            
            <div className="space-y-2">
              <label className="text-xs font-bold uppercase tracking-wider text-white/50">Contraseña</label>
-             <input name="password" type="password" className="w-full bg-secondary/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-primary transition-colors" placeholder="••••••••" />
+             <input name="password" type="password" className="w-full bg-secondary/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-primary transition-colors" placeholder="••••••••" autoComplete="current-password" required />
            </div>
 
            {error && <p className="text-destructive text-sm font-medium text-center">{error}</p>}
 
            <div className="pt-4">
-             <Button type="submit" variant="accent" size="lg" className="h-12 w-full text-secondary text-sm font-bold tracking-widest uppercase shadow-xl shadow-accent/20">Ingresar</Button>
+             <Button type="submit" disabled={loading} variant="accent" size="lg" className="h-12 w-full text-secondary text-sm font-bold tracking-widest uppercase shadow-xl shadow-accent/20">{loading ? "Verificando..." : "Ingresar"}</Button>
            </div>
         </form>
       </div>

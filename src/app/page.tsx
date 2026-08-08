@@ -3,7 +3,7 @@
 import * as React from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { motion, useScroll, useTransform, useReducedMotion } from "framer-motion";
+import { motion, useScroll, useTransform, useReducedMotion, useInView } from "framer-motion";
 import { ArrowRight, Activity, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PartnersMarquee } from "@/components/PartnersMarquee";
@@ -11,7 +11,15 @@ import { TechGrid } from "@/components/motion/TechGrid";
 import { TextReveal } from "@/components/motion/TextReveal";
 import { Reveal, RevealGroup, RevealItem, EASE } from "@/components/motion/Reveal";
 import { SpotlightCard } from "@/components/motion/SpotlightCard";
-import { ServiceVisual } from "@/components/motion/service-visuals";
+import dynamic from "next/dynamic";
+
+/* Las siete escenas animadas pesan mas que el resto de la portada junta y
+   ninguna es visible en el primer pantallazo. Se cargan aparte, cuando el
+   navegador ya pinto el hero. */
+const ServiceVisual = dynamic(
+  () => import("@/components/motion/service-visuals").then((m) => m.ServiceVisual),
+  { ssr: false, loading: () => <div className="h-[126px] rounded-xl bg-muted/60" /> },
+);
 import { SERVICES, PILLARS, SECTORS } from "@/content/services";
 
 export default function Home() {
@@ -26,9 +34,13 @@ export default function Home() {
     target: heroRef,
     offset: ["start start", "end start"],
   });
+  const heroInView = useInView(heroRef, { amount: 0.1 });
   const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "18%"]);
   const contentY = useTransform(scrollYProgress, [0, 1], ["0%", "26%"]);
   const contentOpacity = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
+
+  const ctaRef = React.useRef<HTMLDivElement>(null);
+  const ctaInView = useInView(ctaRef, { amount: 0.2 });
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -40,10 +52,12 @@ export default function Home() {
       >
         <motion.div className="absolute inset-0 z-0" style={reduced ? undefined : { y: bgY }}>
           <Image
-            src="/Voltac_enviroment.png"
+            src="/Voltac_enviroment.webp"
             alt="Tecnología que le devuelve el tiempo a su equipo - Voltac Systems"
             fill
             className="object-cover object-center scale-110"
+            sizes="100vw"
+            quality={70}
             priority
           />
           <div className="absolute inset-0 bg-secondary/85 mix-blend-multiply" />
@@ -58,7 +72,7 @@ export default function Home() {
           <motion.div
             aria-hidden
             className="absolute left-1/4 top-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-primary/20 blur-[130px] z-[1] pointer-events-none"
-            animate={{ opacity: [0.35, 0.6, 0.35], scale: [1, 1.12, 1] }}
+            animate={heroInView ? { opacity: [0.35, 0.6, 0.35], scale: [1, 1.12, 1] } : undefined}
             transition={{ duration: 9, repeat: Infinity, ease: "easeInOut" }}
           />
         )}
@@ -317,9 +331,12 @@ export default function Home() {
             <Reveal direction="left" distance={40} delay={0.15}>
               <div className="relative h-[280px] sm:h-[380px] lg:h-[600px] rounded-2xl overflow-hidden border border-white/10 shadow-[0_0_50px_rgba(37,99,235,0.15)] group">
                 <Image
-                  src="/Voltac_enviroment.png"
+                  src="/Voltac_enviroment.webp"
                   alt="Equipo de Voltac Systems trabajando en soluciones de automatización"
                   fill
+                  sizes="(max-width: 1024px) 100vw, 50vw"
+                  quality={70}
+                  loading="lazy"
                   className="object-cover transition-transform duration-[1.4s] ease-out group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-secondary via-secondary/20 to-transparent" />
@@ -392,13 +409,13 @@ export default function Home() {
       <section className="py-16 sm:py-20 md:py-24 bg-white">
         <div className="container mx-auto px-4 md:px-6">
           <Reveal>
-            <div className="bg-secondary text-white rounded-[2rem] p-8 sm:p-10 md:p-16 relative overflow-hidden">
+            <div ref={ctaRef} className="bg-secondary text-white rounded-[2rem] p-8 sm:p-10 md:p-16 relative overflow-hidden">
               <div className="absolute inset-0 bg-grid opacity-30 mask-fade-radial" aria-hidden />
               {!reduced && (
                 <motion.div
                   aria-hidden
                   className="absolute -right-20 -bottom-20 w-96 h-96 bg-primary/25 rounded-full blur-[100px]"
-                  animate={{ scale: [1, 1.15, 1], opacity: [0.5, 0.8, 0.5] }}
+                  animate={ctaInView ? { scale: [1, 1.15, 1], opacity: [0.5, 0.8, 0.5] } : undefined}
                   transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
                 />
               )}

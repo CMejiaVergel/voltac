@@ -27,7 +27,7 @@ export function ShareButtons({ slug }: { slug: string }) {
       <a href="https://www.linkedin.com/company/voltac-energy" target="_blank" rel="noopener noreferrer" className="p-2 bg-primary/10 rounded-full hover:bg-primary hover:text-white transition-colors text-primary" title="LinkedIn">
         <LinkedinIcon />
       </a>
-      <a href="https://wa.me/+573136253584" target="_blank" rel="noopener noreferrer" className="p-2 bg-primary/10 rounded-full hover:bg-primary hover:text-white transition-colors text-primary" title="WhatsApp">
+      <a href="https://wa.me/573052461088" target="_blank" rel="noopener noreferrer" className="p-2 bg-primary/10 rounded-full hover:bg-primary hover:text-white transition-colors text-primary" title="WhatsApp">
         <WhatsappIcon />
       </a>
       

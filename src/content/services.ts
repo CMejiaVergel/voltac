@@ -376,14 +376,16 @@ export const CONTACT = {
   email: "sales@voltac.com.co",
   devEmail: "dev@voltac.com.co",
   privacyEmail: "sales@voltac.com.co",
-  phone: "+57 313 625 3584",
-  phoneHref: "+573136253584",
+  phone: "+57 305 246 1088",
+  phoneHref: "+573052461088",
   site: "https://voltac.com.co",
   cities: "Cartagena, Sincelejo, Barranquilla y Medellín",
   address: "Urbanización Britania, Cartagena de Indias, Bolívar",
   /** Mapa embebido del pie de página (no requiere clave de Google Maps). */
   mapsEmbed:
     "https://maps.google.com/maps?q=Urbanizaci%C3%B3n%20Britania%2C%20Cartagena%20de%20Indias%2C%20Bol%C3%ADvar%2C%20Colombia&z=15&output=embed",
+  /** Enlace directo a WhatsApp con el mensaje ya escrito. */
+  whatsapp: "https://wa.me/573052461088?text=" + encodeURIComponent("Hola, quisiera agendar la conversación de 30 minutos."),
   mapsLink:
     "https://www.google.com/maps/search/?api=1&query=Urbanizaci%C3%B3n+Britania%2C+Cartagena+de+Indias%2C+Bol%C3%ADvar%2C+Colombia",
 };
@@ -403,6 +405,47 @@ export const SOCIAL = {
 export const LEGAL_LINKS = [
   { label: "Política de Privacidad (Ley 1581 de 2012)", href: "/politica-de-privacidad" },
   { label: "Términos y Condiciones", href: "/terminos-y-condiciones" },
+];
+
+/**
+ * Preguntas frecuentes.
+ *
+ * Existen por dos razones a la vez: le ahorran una conversación al visitante y
+ * son el formato que los buscadores generativos (ChatGPT, Gemini, Perplexity)
+ * citan textualmente cuando alguien pregunta por un proveedor. Se publican
+ * como FAQPage en datos estructurados, y por eso el texto visible y el del
+ * marcado tienen que ser el mismo: inventar respuestas que no están en la
+ * página es motivo de penalización.
+ */
+export const FAQ = [
+  {
+    q: "¿Cuánto cuesta automatizar un proceso en mi empresa?",
+    a: "Depende de cuántas tareas se automaticen y de qué tan enredado esté el proceso hoy. Por eso empezamos con un diagnóstico de 2 a 4 semanas que le dice qué cuesta cada mejora y cuánto recupera; lo que invierta en él se le abona por completo si decide continuar.",
+  },
+  {
+    q: "¿Cuánto se demora una implementación?",
+    a: "Entre 3 y 12 semanas según el servicio. El asistente de atención por WhatsApp arranca en 3 o 4 semanas y es el que primero se paga solo. En todos los casos usted recibe algo que puede probar cada dos semanas: nadie espera meses para saber si la solución sirve.",
+  },
+  {
+    q: "¿Necesito tener conocimientos técnicos para trabajar con ustedes?",
+    a: "No. Hablamos de resultados, no de tecnología. Usted nos cuenta qué tarea le está consumiendo tiempo y nosotros proponemos cómo resolverla; el detalle técnico queda de nuestro lado y su equipo recibe capacitación para operar lo que se entregue.",
+  },
+  {
+    q: "¿Mis datos y los de mis clientes están seguros?",
+    a: "Sí. Cuando se manejan datos sujetos a reserva profesional —derecho, salud, finanzas— trabajamos con modelos privados de inteligencia artificial alojados en infraestructura propia, de modo que la información nunca sale de su organización.",
+  },
+  {
+    q: "¿Trabajan con empresas fuera de Cartagena?",
+    a: "Sí. Estamos en Cartagena y atendemos proyectos en Sincelejo, Barranquilla, Medellín y el resto del país, además de proyectos en Latinoamérica. Las conversaciones y las entregas se hacen de forma remota sin ningún problema.",
+  },
+  {
+    q: "¿Qué pasa si ya tengo un sistema funcionando?",
+    a: "Se conecta con lo que ya usa en vez de reemplazarlo. Buena parte de nuestro trabajo es justamente unir programas que hoy no se hablan, para que nadie tenga que digitar la misma información dos veces.",
+  },
+  {
+    q: "¿La primera conversación tiene costo?",
+    a: "No. Son 30 minutos sin costo y sin compromiso. Escuchamos cómo funciona su operación hoy y le decimos con franqueza si hay algo que valga la pena resolver; si no lo hay, se lo decimos.",
+  },
 ];
 
 /** Fecha de última revisión de los documentos legales. */

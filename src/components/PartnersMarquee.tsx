@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { motion } from "framer-motion";
+import { motion, useInView } from "framer-motion";
 import { PARTNERS } from "@/content/partners";
 
 /**
@@ -15,6 +15,10 @@ import { PARTNERS } from "@/content/partners";
  */
 export function PartnersMarquee() {
   const [loadedLogos, setLoadedLogos] = React.useState<string[]>([]);
+  /* La banda giraba siempre, tambien con la seccion fuera de pantalla: eso
+     mantiene ocupada la GPU y gasta bateria sin que nadie lo vea. */
+  const sectionRef = React.useRef<HTMLElement>(null);
+  const inView = useInView(sectionRef, { amount: 0.1 });
 
   React.useEffect(() => {
     let cancelled = false;
@@ -37,7 +41,7 @@ export function PartnersMarquee() {
   if (visible.length === 0) return null;
 
   return (
-    <section className="py-12 bg-secondary border-t border-white/5 relative z-20 overflow-hidden">
+    <section ref={sectionRef} className="py-12 bg-secondary border-t border-white/5 relative z-20 overflow-hidden">
       <div
         className="relative w-full overflow-hidden whitespace-nowrap"
         style={{
@@ -48,7 +52,7 @@ export function PartnersMarquee() {
       >
         <motion.div
           className="flex w-max items-center"
-          animate={{ x: ["0%", "-50%"] }}
+          animate={inView ? { x: ["0%", "-50%"] } : undefined}
           transition={{ ease: "linear", duration: 45, repeat: Infinity }}
         >
           {[...visible, ...visible].map((partner, i) => {

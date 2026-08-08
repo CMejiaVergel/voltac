@@ -2,6 +2,19 @@
 
 import { getDB } from "@/lib/db";
 import { revalidatePath } from "next/cache";
+import { adminConfig, safeEqual, sha256Hex } from "@/lib/auth";
+
+/**
+ * Segunda confirmacion para las acciones destructivas. Antes comparaba contra
+ * una cadena escrita en el codigo —publicada, por tanto, en el repositorio—.
+ * Ahora se valida contra el mismo hash del entorno que usa el login.
+ */
+async function confirmarClaveAdmin(pass: string): Promise<{ ok: boolean; error?: string }> {
+  const config = adminConfig();
+  if (!config) return { ok: false, error: "El acceso administrativo no esta configurado en el servidor." };
+  const ok = safeEqual(await sha256Hex(pass ?? ""), config.passwordHash);
+  return ok ? { ok: true } : { ok: false, error: "Contrasena administrativa incorrecta." };
+}
 
 export async function updateLeadStage(id: number, stage: string, status: string, author: string = "Admin") {
   const db = await getDB();
@@ -97,9 +110,8 @@ export async function createManualLead(data: any, author: string = "Admin") {
 }
 
 export async function deleteLeads(ids: number[], pass: string) {
-  if (pass !== "voltacsystems2026") {
-    return { success: false, error: "Contraseña administrativa incorrecta." };
-  }
+  const check = await confirmarClaveAdmin(pass);
+  if (!check.ok) return { success: false, error: check.error };
   
   const db = await getDB();
   const placeholders = ids.map(() => '?').join(',');
@@ -124,7 +136,8 @@ export async function restoreLeads(ids: number[]) {
 }
 
 export async function permanentDeleteLeads(ids: number[], pass: string) {
-  if (pass !== "voltacsystems2026") return { success: false, error: "Contraseña administrativa incorrecta." };
+  const check = await confirmarClaveAdmin(pass);
+  if (!check.ok) return { success: false, error: check.error };
   
   const db = await getDB();
   const placeholders = ids.map(() => '?').join(',');

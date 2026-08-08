@@ -2,11 +2,20 @@ import { NextResponse } from 'next/server';
 import { getDB } from '@/lib/db';
 import ExcelJS from 'exceljs';
 
+/**
+ * Los valores permitidos para `type` estan enumerados a proposito. Antes se
+ * interpolaba el parametro crudo dentro del SQL, asi que un `?type=' OR 1=1--`
+ * alteraba la consulta. Con lista blanca + parametro ligado, el valor nunca
+ * llega al motor como codigo.
+ */
+const TIPOS_TRANSACCION = new Set(['income', 'expense']);
+const TIPOS_FACTURA = new Set(['emitted', 'received']);
+
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const entity = searchParams.get('entity') || 'transactions';
-    const type = searchParams.get('type') || '';
+    const typeParam = searchParams.get('type') || '';
     const db = await getDB();
 
     let rows: any[] = [];
@@ -14,7 +23,11 @@ export async function GET(req: Request) {
     let columns: { header: string; key: string; width: number }[] = [];
 
     if (entity === 'transactions') {
-      rows = await db.all(`SELECT type,date,description,payment_method,amount,currency,status FROM acc_transactions WHERE status!='Anulado'${type?` AND type='${type}'`:''} ORDER BY date DESC`);
+      const type = TIPOS_TRANSACCION.has(typeParam) ? typeParam : '';
+      rows = await db.all(
+        `SELECT type,date,description,payment_method,amount,currency,status FROM acc_transactions WHERE status!='Anulado'${type ? ' AND type=?' : ''} ORDER BY date DESC`,
+        type ? [type] : [],
+      );
       sheetName = 'Ingresos y Egresos';
       columns = [
         {header:'Tipo',key:'type',width:12},{header:'Fecha',key:'date',width:12},
@@ -38,7 +51,11 @@ export async function GET(req: Request) {
         {header:'Teléfono',key:'phone',width:15},{header:'Categoría',key:'category',width:20},
       ];
     } else if (entity === 'invoices') {
-      rows = await db.all(`SELECT i.number,CASE WHEN i.type='emitted' THEN c.name ELSE s.name END as third_party,i.issue_date,i.due_date,i.total,i.currency,i.status FROM acc_invoices i LEFT JOIN acc_clients c ON i.type='emitted' AND i.third_party_id=c.id LEFT JOIN acc_suppliers s ON i.type='received' AND i.third_party_id=s.id WHERE i.status!='Anulada'${type?` AND i.type='${type}'`:''}`);
+      const type = TIPOS_FACTURA.has(typeParam) ? typeParam : '';
+      rows = await db.all(
+        `SELECT i.number,CASE WHEN i.type='emitted' THEN c.name ELSE s.name END as third_party,i.issue_date,i.due_date,i.total,i.currency,i.status FROM acc_invoices i LEFT JOIN acc_clients c ON i.type='emitted' AND i.third_party_id=c.id LEFT JOIN acc_suppliers s ON i.type='received' AND i.third_party_id=s.id WHERE i.status!='Anulada'${type ? ' AND i.type=?' : ''}`,
+        type ? [type] : [],
+      );
       sheetName = 'Facturas';
       columns = [
         {header:'Número',key:'number',width:18},{header:'Tercero',key:'third_party',width:30},

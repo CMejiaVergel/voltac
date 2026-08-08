@@ -5,6 +5,7 @@ import { LegalPage, LegalSection } from "@/components/layout/LegalPage";
 import { CONTACT } from "@/content/services";
 
 export const metadata: Metadata = {
+  alternates: { canonical: '/terminos-y-condiciones' },
   title: "Términos y Condiciones",
   description:
     "Términos y condiciones de uso del sitio web de Voltac Systems S.A.S.: alcance de la información publicada, propiedad intelectual, uso de formularios y ley aplicable.",

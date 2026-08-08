@@ -45,7 +45,7 @@ export default function ClientProyectos({ projects }: { projects: any[] }) {
                     className={`flex flex-col lg:flex-row gap-8 md:gap-16 items-center ${i % 2 !== 0 ? 'lg:flex-row-reverse' : ''}`}
                  >
                     <div className="w-full lg:w-1/2 relative h-[260px] sm:h-[400px] md:h-[500px] rounded-3xl overflow-hidden shadow-2xl group cursor-pointer border border-border/50">
-                       <Image src={proj.imageUrl || '/Voltac_enviroment.png'} alt={proj.title} fill className="object-cover transition-transform duration-1000 group-hover:scale-105" />
+                       <Image src={proj.imageUrl || '/Voltac_enviroment.webp'} alt={proj.title} fill className="object-cover transition-transform duration-1000 group-hover:scale-105" />
                        <div className="absolute inset-0 bg-gradient-to-t from-secondary/80 to-transparent flex items-end p-8">
                           <div className="inline-block bg-primary/90 text-white backdrop-blur-sm text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full shadow-lg">
                              {proj.techType}

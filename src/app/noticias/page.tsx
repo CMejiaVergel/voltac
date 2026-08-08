@@ -5,6 +5,7 @@ import ClientNoticias from "./ClientNoticias";
 export const dynamic = 'force-dynamic';
 
 export const metadata = {
+  alternates: { canonical: '/noticias' },
   title: "Noticias y aprendizajes | Voltac Systems",
   description: "Lo que aprendemos en proyectos reales, explicado sin tecnicismos: qué se puede automatizar hoy en una empresa, qué todavía no conviene y cómo saber por dónde empezar.",
 };

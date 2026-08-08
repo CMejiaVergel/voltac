@@ -6,7 +6,7 @@ import { TechGrid } from "@/components/motion/TechGrid";
 import { TextReveal } from "@/components/motion/TextReveal";
 import { Reveal } from "@/components/motion/Reveal";
 import { ProcessTimeline } from "@/components/motion/ProcessTimeline";
-import { SERVICES, CONTACT } from "@/content/services";
+import { SERVICES, CONTACT, FAQ } from "@/content/services";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -22,6 +22,7 @@ export const metadata: Metadata = {
     "reportes a entidades de control",
     "digitalización de operaciones",
   ],
+  alternates: { canonical: '/servicios' },
 };
 
 const serviceCatalogSchema = {
@@ -44,12 +45,44 @@ const serviceCatalogSchema = {
   })),
 };
 
+/**
+ * FAQPage: el formato que los buscadores generativos citan textualmente. Las
+ * preguntas del marcado son exactamente las que se ven en la pagina; declarar
+ * aqui contenido que no este visible es motivo de sancion.
+ */
+const faqSchema = {
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  mainEntity: FAQ.map((item) => ({
+    "@type": "Question",
+    name: item.q,
+    acceptedAnswer: { "@type": "Answer", text: item.a },
+  })),
+};
+
+const breadcrumbSchema = {
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    { "@type": "ListItem", position: 1, name: "Inicio", item: CONTACT.site },
+    { "@type": "ListItem", position: 2, name: "Servicios", item: CONTACT.site + "/servicios" },
+  ],
+};
+
 export default function ServiciosPage() {
   return (
     <div className="flex flex-col min-h-screen pt-24 bg-white text-secondary">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(serviceCatalogSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(faqSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbSchema) }}
       />
 
       {/* Header */}
@@ -153,6 +186,40 @@ export default function ServiciosPage() {
             </Reveal>
           </div>
           <Glosario />
+        </div>
+      </section>
+
+      {/* Preguntas frecuentes */}
+      <section className="py-16 sm:py-20 md:py-24 bg-white">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="max-w-3xl mb-10 md:mb-16">
+            <Reveal>
+              <p className="eyebrow mb-4">Antes de escribirnos</p>
+            </Reveal>
+            <TextReveal
+              as="h2"
+              className="display-2 mb-4"
+              segments={[{ text: "Preguntas" }, { text: "frecuentes.", highlight: true }]}
+            />
+          </div>
+
+          <div className="max-w-3xl divide-y divide-border/60">
+            {FAQ.map((item) => (
+              <Reveal key={item.q}>
+                <details className="group py-5">
+                  <summary className="flex items-start gap-4 cursor-pointer list-none font-bold text-secondary hover:text-primary transition-colors">
+                    <span className="text-primary mt-0.5 shrink-0 transition-transform duration-300 group-open:rotate-45 text-xl leading-none">
+                      +
+                    </span>
+                    <h3 className="text-base sm:text-lg leading-snug">{item.q}</h3>
+                  </summary>
+                  <p className="text-secondary/70 font-light leading-relaxed mt-3 pl-8">
+                    {item.a}
+                  </p>
+                </details>
+              </Reveal>
+            ))}
+          </div>
         </div>
       </section>
 

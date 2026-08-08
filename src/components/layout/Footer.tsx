@@ -107,9 +107,19 @@ export function Footer() {
             <ul className="space-y-4 font-light text-white/60">
               <li className="flex items-center gap-3">
                 <Phone size={18} className="text-primary shrink-0" />
-                <a href={`tel:${CONTACT.phoneHref}`} className="hover:text-accent transition-colors">
-                  {CONTACT.phone}
-                </a>
+                <span className="flex flex-col gap-1">
+                  <a href={`tel:${CONTACT.phoneHref}`} className="hover:text-accent transition-colors">
+                    {CONTACT.phone}
+                  </a>
+                  <a
+                    href={CONTACT.whatsapp}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-accent hover:text-white transition-colors font-semibold"
+                  >
+                    Escribir por WhatsApp
+                  </a>
+                </span>
               </li>
               <li className="flex items-start gap-3">
                 <Mail size={18} className="text-primary shrink-0 mt-0.5" />
