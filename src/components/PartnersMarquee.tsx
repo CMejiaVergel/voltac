@@ -23,13 +23,22 @@ export function PartnersMarquee() {
   React.useEffect(() => {
     let cancelled = false;
 
+    /*
+     * Se comprueba con HEAD, no cargando la imagen.
+     *
+     * `new Image()` sobre un archivo inexistente no falla barato: el servidor
+     * responde con la pagina 404 de Next —unos 39 KB de HTML— y el navegador
+     * se la descarga entera. Con cinco logos pendientes eran ~195 KB tirados en
+     * cada visita para no mostrar nada. HEAD trae solo las cabeceras.
+     */
     PARTNERS.filter((p) => p.logo).forEach((partner) => {
-      const probe = new window.Image();
-      probe.onload = () => {
-        if (cancelled) return;
-        setLoadedLogos((prev) => (prev.includes(partner.name) ? prev : [...prev, partner.name]));
-      };
-      probe.src = partner.logo as string;
+      fetch(partner.logo as string, { method: "HEAD" })
+        .then((res) => {
+          const tipo = res.headers.get("content-type") ?? "";
+          if (cancelled || !res.ok || !tipo.startsWith("image/")) return;
+          setLoadedLogos((prev) => (prev.includes(partner.name) ? prev : [...prev, partner.name]));
+        })
+        .catch(() => undefined);
     });
 
     return () => {
