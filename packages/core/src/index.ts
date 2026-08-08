@@ -5,6 +5,7 @@
  * heredan. Lo que es propio de una marca —el estudio de viabilidad con factura
  * de Energy, el catálogo de servicios de Systems— se queda en su aplicación.
  */
-export * from "./auth.js";
-export * from "./vertical.js";
-export * from "./paths.js";
+export * from "./auth";
+export * from "./vertical";
+export * from "./paths";
+export * from "./db";

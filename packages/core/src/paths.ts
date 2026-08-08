@@ -17,9 +17,21 @@ export function dataDir(): string {
   return resolve(process.env.VOLTAC_DATA_DIR ?? process.cwd());
 }
 
-/** Base de datos única de la compañía. */
-export function databasePath(): string {
-  return join(dataDir(), "voltac.db");
+/**
+ * Base operativa de una línea de negocio: prospectos, proyectos y noticias.
+ * Cada marca tiene la suya, y esa es la garantía de que no se mezclan.
+ */
+export function operationalPath(vertical: string): string {
+  return join(dataDir(), vertical, "voltac.db");
+}
+
+/**
+ * Contabilidad. Una sola para toda la empresa: Voltac Systems S.A.S. está
+ * constituida una vez y los contadores necesitan la facturación completa,
+ * sin importar de qué frente comercial venga cada factura.
+ */
+export function accountingPath(): string {
+  return join(dataDir(), "contabilidad.db");
 }
 
 /**

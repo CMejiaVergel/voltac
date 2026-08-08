@@ -9,6 +9,7 @@
     ".": "./src/index.ts",
     "./auth": "./src/auth.ts",
     "./vertical": "./src/vertical.ts",
-    "./paths": "./src/paths.ts"
+    "./paths": "./src/paths.ts",
+    "./db": "./src/db.ts"
   }
 }
