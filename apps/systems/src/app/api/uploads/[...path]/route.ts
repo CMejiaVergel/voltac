@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { join, resolve, sep } from 'path';
+import { dataDir } from '@voltac/core/paths';
 import { readFile } from 'fs/promises';
 
 /**
@@ -10,7 +11,7 @@ import { readFile } from 'fs/promises';
  * servidor —incluidos `.env` y la base de datos—. Se resuelve la ruta y se
  * comprueba que siga dentro de `uploads/` antes de abrir nada.
  */
-const UPLOADS_ROOT = resolve(process.cwd(), 'uploads');
+const UPLOADS_ROOT = resolve(dataDir(), 'uploads');
 
 /** Solo se sirven imagenes; nunca se adivina el tipo a partir del contenido. */
 const CONTENT_TYPES: Record<string, string> = {

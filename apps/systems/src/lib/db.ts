@@ -1,13 +1,14 @@
 import sqlite3 from 'sqlite3';
 import { open, Database } from 'sqlite';
 import { join } from 'path';
+import { databasePath } from "@voltac/core/paths";
 
 let db: Database | null = null;
 
 export async function getDB() {
   if (!db) {
     db = await open({
-      filename: join(process.cwd(), 'voltac.db'),
+      filename: databasePath(),
       driver: sqlite3.Database
     });
 

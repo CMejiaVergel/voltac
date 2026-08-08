@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { SESSION_COOKIE, adminConfig, verifySession } from "@/lib/auth";
+import { SESSION_COOKIE, adminConfig, verifySession } from "@voltac/core/auth";
 
 /**
  * Portero único del sitio.

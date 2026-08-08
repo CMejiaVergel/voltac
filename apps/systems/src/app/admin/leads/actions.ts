@@ -2,7 +2,7 @@
 
 import { getDB } from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { adminConfig, safeEqual, sha256Hex } from "@/lib/auth";
+import { adminConfig, safeEqual, sha256Hex } from "@voltac/core/auth";
 
 /**
  * Segunda confirmacion para las acciones destructivas. Antes comparaba contra

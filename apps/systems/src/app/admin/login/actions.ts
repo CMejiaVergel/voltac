@@ -8,7 +8,7 @@ import {
   safeEqual,
   sha256Hex,
   signSession,
-} from "@/lib/auth";
+} from "@voltac/core/auth";
 
 /**
  * Validación de credenciales en el servidor.
