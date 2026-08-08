@@ -4,22 +4,25 @@ import * as React from "react";
 import { useRouter } from "next/navigation";
 import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { login } from "./actions";
 
 export default function AdminLoginPage() {
   const router = useRouter();
   const [error, setError] = React.useState("");
+  const [loading, setLoading] = React.useState(false);
 
-  const handleLogin = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const fd = new FormData(e.currentTarget);
-    const user = fd.get("username");
-    const pass = fd.get("password");
-
-    if (user === "voltacenergy" && pass === "voltacenergy2026") {
-      localStorage.setItem("voltac_admin_auth", "true");
-      router.push("/admin");
-    } else {
-      setError("Credenciales incorrectas.");
+    setLoading(true);
+    setError("");
+    try {
+      const result = await login(undefined, new FormData(e.currentTarget));
+      if (result.error) setError(result.error);
+      else router.replace("/admin");
+    } catch {
+      setError("No se pudo contactar al servidor. Intente de nuevo.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -55,7 +58,7 @@ export default function AdminLoginPage() {
            {error && <p className="text-destructive text-sm font-medium text-center">{error}</p>}
 
            <div className="pt-4">
-             <Button type="submit" variant="accent" size="lg" className="h-12 w-full text-secondary text-sm font-bold tracking-widest uppercase shadow-xl shadow-accent/20">Ingresar</Button>
+             <Button type="submit" disabled={loading} variant="accent" size="lg" className="h-12 w-full text-secondary text-sm font-bold tracking-widest uppercase shadow-xl shadow-accent/20">Ingresar</Button>
            </div>
         </form>
       </div>

@@ -21,3 +21,10 @@ next-env.d.ts
 *.db
 *.db-shm
 *.db-wal
+
+# Artefactos de diagnostico que no deben versionarse
+apps/*/build_output*.txt
+apps/*/lint_errors.txt
+apps/*/compile_errors.txt
+apps/*/errors.txt
+apps/*/lighthouse-report.json

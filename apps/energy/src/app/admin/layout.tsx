@@ -6,27 +6,17 @@ import { LayoutDashboard, Users, FolderKanban, Settings, LogOut, BarChart3, Eye,
 import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { logout } from "./login/actions";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const [isAuthenticated, setIsAuthenticated] = React.useState(false);
   const [collapsed, setCollapsed] = React.useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
 
-  React.useEffect(() => {
-    // Highly simplified mock auth check for MVP
-    const auth = localStorage.getItem("voltac_admin_auth");
-    if (auth === "true") {
-      setIsAuthenticated(true);
-    } else if (pathname !== "/admin/login") {
-      router.push("/admin/login");
-    }
-  }, [pathname, router]);
-
-  if (!isAuthenticated && pathname !== "/admin/login") {
-    return <div className="min-h-screen flex items-center justify-center bg-muted text-secondary">Cargando panel de seguridad...</div>;
-  }
+  /* Sin comprobacion de sesion aqui: el proxy decide en el servidor antes de
+     que esta pagina se renderice. Comprobarlo tambien en el cliente daba una
+     falsa sensacion de proteccion —bastaba escribir la clave en localStorage—. */
 
   if (pathname === "/admin/login") {
     return <>{children}</>;
@@ -107,8 +97,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="p-4 border-t border-white/10 space-y-2">
           <button 
             onClick={() => {
-              localStorage.removeItem("voltac_admin_auth");
-              router.push("/admin/login");
+              void logout().then(() => router.replace("/admin/login"));
             }}
             title={collapsed ? "Cerrar Sesión" : undefined}
             className={cn(
