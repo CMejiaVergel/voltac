@@ -6,8 +6,12 @@
  * navegador y entrar. Aquí la sesión es una cookie httpOnly firmada con HMAC
  * en el servidor; el navegador no puede fabricarla ni leerla desde JavaScript.
  *
- * Se usa Web Crypto (no `node:crypto`) a propósito: el middleware corre en el
- * runtime Edge, donde `node:crypto` no existe. Web Crypto funciona en ambos.
+ * Se usa Web Crypto y no `node:crypto`. La razón original era que el
+ * middleware corría en el runtime Edge; desde Next 16 el proxy corre en Node,
+ * así que ya no es una obligación. Se mantiene porque Web Crypto funciona en
+ * los dos runtimes y este archivo lo importan tanto el proxy como el navegador
+ * a través de la sesión: una dependencia menos de la que preocuparse si algo
+ * vuelve a moverse de sitio.
  */
 
 import { esRol, type Rol } from "./roles";
@@ -128,13 +132,11 @@ export interface SessionPayload {
   /**
    * Rol, dentro del propio token firmado.
    *
-   * Va aquí y no se consulta en base de datos en cada petición porque el proxy
-   * corre en el runtime Edge, donde no hay SQLite. La firma HMAC es lo que hace
-   * esto seguro: el navegador no puede cambiarse el rol sin invalidar el token.
-   *
-   * El precio es que un cambio de rol no surte efecto hasta el siguiente inicio
-   * de sesión —como mucho ocho horas—. Para revocar de inmediato está desactivar
-   * la cuenta, que sí se comprueba al entrar.
+   * Viaja aquí para que la interfaz pueda pintar el menú sin consultar nada, y
+   * la firma HMAC impide que el navegador se lo cambie. No es la única fuente:
+   * el proxy contrasta este valor contra el estado vigente de la cuenta en cada
+   * petición protegida, así que un token con un rol que ya no corresponde deja
+   * de servir en el acto.
    */
   rol: Rol;
   /** Emisión y expiración, en segundos epoch */

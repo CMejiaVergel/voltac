@@ -16,8 +16,8 @@
  * configuración que nadie mantiene y que acaba concediendo de más por comodidad.
  * Tres roles se entienden de un vistazo y se auditan leyendo esta lista.
  *
- * Este archivo no importa nada: lo usan tanto el proxy (runtime Edge) como la
- * interfaz y las rutas de API.
+ * Este archivo no importa nada: lo usan por igual el proxy, la interfaz y las
+ * rutas de API.
  */
 
 export const ROLES = ["propietario", "contador", "moderador"] as const;

@@ -1,6 +1,7 @@
 "use server";
 
 import { getDB } from "../db";
+import type { AnalyticsEvent, AnalyticsPayload } from "./types";
 
 /**
  * Consultas del panel de analítica.
@@ -10,31 +11,6 @@ import { getDB } from "../db";
  * notaba al abrir la pantalla. Aquí cada cifra sale de una consulta con índice,
  * y la tabla trae solo la página que se está mirando.
  */
-
-export interface AnalyticsStats {
-  uniqueVisitors: number;
-  avgTimeSeconds: number;
-  clicks: number;
-  totalEvents: number;
-}
-
-export interface AnalyticsEvent {
-  id: number;
-  at: string;
-  event: string;
-  path: string | null;
-  referrer: string | null;
-  duration: number;
-  userAgent: string | null;
-}
-
-export interface AnalyticsPayload {
-  success: boolean;
-  stats: AnalyticsStats;
-  events: AnalyticsEvent[];
-  topPaths: { path: string; vistas: number }[];
-  porDia: { dia: string; vistas: number }[];
-}
 
 const VACIO: AnalyticsPayload = {
   success: false,

@@ -16,12 +16,31 @@
     "./analytics/*": "./src/analytics/*.tsx",
     "./analytics/ingest": "./src/analytics/ingest.ts",
     "./analytics/queries": "./src/analytics/queries.ts",
+    "./analytics/types": "./src/analytics/types.ts",
     "./proxy": "./src/proxy.ts",
     "./roles": "./src/roles.ts",
     "./usuarios": "./src/usuarios/index.ts",
     "./usuarios/ui/*": "./src/usuarios/ui/*.tsx",
     "./usuarios/api/*": "./src/usuarios/api/*.ts",
     "./sesion": "./src/sesion.ts",
-    "./sesion-cliente": "./src/sesion-cliente.tsx"
+    "./sesion-cliente": "./src/sesion-cliente.tsx",
+    "./next-config": "./src/next-config.ts"
+  },
+  "//": "El nucleo no instala nada por su cuenta: usa las copias de la aplicacion que lo monta, y por eso todo va como peerDependencies. Antes no habia ninguna declarada y resolvia por hoisting; el dia que npm dejo de subir `next` a la raiz, el nucleo dejo de compilar sin haber cambiado una linea.",
+  "peerDependencies": {
+    "@react-pdf/renderer": "^4.5.1",
+    "axios": "^1.19.0",
+    "clsx": "^2.1.1",
+    "exceljs": "^4.4.0",
+    "lucide-react": "^1.6.0",
+    "next": "^16.3.0",
+    "pdf2pic": "^3.2.0",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
+    "recharts": "^3.8.1",
+    "sqlite": "^5.1.1",
+    "sqlite3": "^6.0.1",
+    "tailwind-merge": "^3.5.0",
+    "tesseract.js": "^7.0.0"
   }
 }

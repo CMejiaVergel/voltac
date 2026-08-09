@@ -5,9 +5,10 @@ import { esRol, type Rol } from "../roles";
 /**
  * Cuentas del panel.
  *
- * Vive aparte de `auth.ts` porque toca SQLite, y `auth.ts` tiene que seguir
- * funcionando en el runtime Edge donde el proxy comprueba la sesión. Aquí se
- * decide *quién* entra; allí solo se verifica una firma.
+ * Vive aparte de `auth.ts` para mantener separadas dos cosas distintas: allí se
+ * verifica una firma, aquí se decide *quién* entra y con qué permisos. Esa
+ * separación también deja `auth.ts` libre de dependencias nativas, que es lo
+ * que permite importarlo desde cualquier sitio sin arrastrar SQLite.
  */
 
 export interface Usuario {
@@ -117,6 +118,26 @@ export async function confirmarPassword(usuario: string, password: string): Prom
   );
   if (!fila || !fila.activo) return false;
   return verifyPassword(password, fila.password_hash);
+}
+
+/**
+ * Estado vigente de una cuenta, para comprobarlo en cada petición protegida.
+ *
+ * El token de sesión dice quién es y qué rol tenía **al entrar**. Esto dice qué
+ * es ahora. La diferencia importa el día que hay que retirarle el acceso a
+ * alguien: sin esta consulta, su cookie seguiría sirviendo hasta ocho horas
+ * después de desactivar la cuenta.
+ */
+export async function estadoDeCuenta(
+  usuario: string,
+): Promise<{ rol: Rol; activo: boolean } | null> {
+  const db = await getDB();
+  const fila = await db.get<{ rol: string; activo: number }>(
+    "SELECT rol, activo FROM sys.usuarios WHERE usuario = ?",
+    [usuario],
+  );
+  if (!fila || !esRol(fila.rol)) return null;
+  return { rol: fila.rol, activo: Boolean(fila.activo) };
 }
 
 export async function listarUsuarios(): Promise<Usuario[]> {

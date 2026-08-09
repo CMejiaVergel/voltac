@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, adminConfig, verifySession } from "./auth";
 import { INICIO, rolesPara } from "./roles";
+import { estadoDeCuenta } from "./usuarios";
 
 /**
  * Portero único de las dos líneas de negocio.
@@ -22,6 +23,14 @@ import { INICIO, rolesPara } from "./roles";
  *     no dice nada. Vale tanto para un desconocido como para el moderador, que
  *     trabaja también con otras empresas y no tiene por qué conocer el mapa
  *     completo del panel.
+ *
+ * Sobre consultar la base desde aquí: desde Next 16 el proxy corre en el
+ * runtime **Node**, no en Edge, y su `runtime` no se puede configurar. Eso
+ * permite comprobar el estado vigente de la cuenta en cada petición protegida,
+ * que es lo que hace que desactivar a alguien surta efecto en el acto y no
+ * ocho horas después. La consulta se hace **solo** cuando la ruta está
+ * protegida y la firma ya resultó válida: las páginas públicas, que son la
+ * inmensa mayoría del tráfico, no tocan la base.
  */
 
 /** Única puerta de entrada; se sirve siempre. */
@@ -70,13 +79,26 @@ export async function proxy(request: NextRequest) {
 
   const esApi = pathname.startsWith("/api/");
 
-  if (!sesion) {
-    // Para APIs, un 401 honesto: quien las consume es código, no una persona.
-    if (esApi) {
-      return cabecerasSeguridad(NextResponse.json({ error: "No autorizado" }, { status: 401 }), true);
-    }
-    return cabecerasSeguridad(noEncontrado(), true);
-  }
+  const sinAcceso = () =>
+    esApi
+      ? // Para APIs, un 401 honesto: quien las consume es código, no una persona.
+        cabecerasSeguridad(NextResponse.json({ error: "No autorizado" }, { status: 401 }), true)
+      : cabecerasSeguridad(noEncontrado(), true);
+
+  if (!sesion) return sinAcceso();
+
+  /*
+   * La firma solo prueba que el token lo emitimos nosotros y que no ha
+   * caducado. Falta lo que puede haber cambiado desde entonces: que la cuenta
+   * siga activa y que el rol siga siendo el mismo.
+   *
+   * Si el rol cambio, se invalida la sesion en lugar de aplicar el nuevo: la
+   * interfaz pinta el menu a partir del rol del token, y dejar pasar con uno
+   * distinto mostraria una navegacion que no corresponde con lo que el
+   * servidor permite. Volver a entrar deja las dos cosas en su sitio.
+   */
+  const cuenta = await estadoDeCuenta(sesion.sub);
+  if (!cuenta || !cuenta.activo || cuenta.rol !== sesion.rol) return sinAcceso();
 
   if (!permitidos.includes(sesion.rol)) {
     // El login siempre manda a /admin. Quien no sea propietario no tiene
