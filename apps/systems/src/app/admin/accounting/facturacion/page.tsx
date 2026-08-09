@@ -92,17 +92,6 @@ export default function FacturacionPage() {
   const handleConfirmImport = async () => {
     if(!pdfData || !pdfData.data) return;
     const data = pdfData.data;
-    // Emitted invoice → third party is the CLIENT; Received → third party is the ISSUER/SUPPLIER
-    const thirdPartyNit  = activeTab==="emitted" ? (data.client_nit  ||data.issuer_nit)  : (data.issuer_nit ||data.client_nit);
-    const thirdPartyName = activeTab==="emitted" ? (data.client_name ||data.issuer_name) : (data.issuer_name||data.client_name);
-
-    const endpoint = activeTab==="received" ? "/api/accounting/suppliers" : "/api/accounting/clients";
-    const j = await fetch(endpoint).then(r=>r.json());
-    const list = j.success ? j.data : [];
-    const matched = list.find((x:any)=>
-      (thirdPartyNit  && x.document_number?.replace(/[.\s-]/g,"")===thirdPartyNit.replace(/[.\s-]/g,"")) ||
-      (thirdPartyName && x.name?.toLowerCase()===thirdPartyName?.toLowerCase())
-    );
 
     const issueDate = data.issue_date || new Date().toISOString().split("T")[0];
     const dueDate   = data.due_date   || addDays(issueDate, 30);
@@ -111,20 +100,24 @@ export default function FacturacionPage() {
       : [{ description:"Servicios (extraído de PDF)", quantity:1, unit_price:data.subtotal||data.total||0, discount_pct:0, tax_id:"1" }];
 
     const metadata = pdfData.metadata || {};
+    const tpId = data.third_party_id || "";
+    const tpName = data.third_party_name || "";
+    const tpCreated = data.third_party_created;
     
     // Do NOT pass an `id` — InvoiceModal uses !!initialData?.id to decide POST vs PUT
     setEditingItem({
       type: activeTab,
-      third_party_id: matched ? String(matched.id) : "",
+      third_party_id: tpId,
       issue_date: issueDate,
       due_date: dueDate,
       currency: data.currency || "COP",
       discount: 0,
-      notes: `Importado automáticamente de PDF. Confianza: ${metadata.confidence||0}%. Método: ${metadata.parser_used||"N/A"}. Factura N°: ${data.invoice_number||"—"} · NIT: ${thirdPartyNit||"—"}`,
+      notes: `Importado automáticamente de PDF. Confianza: ${metadata.confidence||0}%. Método: ${metadata.parser_used||"N/A"}. Factura N°: ${data.invoice_number||"—"}`,
       terms: "",
       items,
       _importedFrom: "pdf",
-      _matchedThirdParty: matched?.name || null,
+      _matchedThirdParty: tpName || null,
+      _thirdPartyCreated: tpCreated,
       _validation: pdfData.validation
     });
     setPdfState("idle"); setPdfData(null);
@@ -189,6 +182,16 @@ export default function FacturacionPage() {
             </h4>
             <div className="flex gap-2 ml-auto">
               <span className="text-xs px-2 py-1 rounded bg-white border border-blue-100 text-blue-600">Confianza: {pdfData.metadata?.confidence}%</span>
+              {pdfData.data.third_party_created && (
+                <span className="text-xs px-2 py-1 rounded bg-green-100 border border-green-200 text-green-700">
+                  {activeTab==="emitted" ? "Cliente" : "Proveedor"} creado automáticamente
+                </span>
+              )}
+              {pdfData.data.third_party_id && !pdfData.data.third_party_created && (
+                <span className="text-xs px-2 py-1 rounded bg-green-100 border border-green-200 text-green-700">
+                  {activeTab==="emitted" ? "Cliente" : "Proveedor"} encontrado
+                </span>
+              )}
               <button onClick={()=>{setPdfState("idle");setPdfData(null);}} className="text-blue-400 hover:text-blue-700"><X size={16}/></button>
             </div>
           </div>
@@ -205,8 +208,8 @@ export default function FacturacionPage() {
             {[
               {label:"Emisor",           val:pdfData.data.issuer_name   ||"—"},
               {label:"NIT Emisor",       val:pdfData.data.issuer_nit    ||"—"},
-              {label:"Cliente",          val:pdfData.data.client_name   ||"—"},
-              {label:"NIT Cliente",      val:pdfData.data.client_nit    ||"—"},
+              {label:activeTab==="emitted"?"Cliente":"Proveedor", val:pdfData.data.third_party_name || pdfData.data.client_name || pdfData.data.issuer_name ||"—"},
+              {label:activeTab==="emitted"?"NIT Cliente":"NIT Proveedor", val:activeTab==="emitted" ? (pdfData.data.client_nit||"—") : (pdfData.data.issuer_nit||"—")},
               {label:"N° Factura",       val:pdfData.data.invoice_number||"—"},
               {label:"Fecha Emisión",    val:pdfData.data.issue_date    ||"—"},
               {label:"Fecha Vencimiento",val:pdfData.data.due_date      ||"—"},

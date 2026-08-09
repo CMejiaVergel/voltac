@@ -4,7 +4,7 @@ import { parseAmount, clean, toISO } from "./utils";
 export function parseSiigoInvoice(text: string, lines: string[]): Partial<ParsedInvoiceData> {
   let issuerName = "";
   let issuerNit  = "";
-  const firstNitIdx = lines.findIndex((l: string) => /^NIT\b/i.test(l) || /^NIT\s+\d/i.test(l));
+  const firstNitIdx = lines.findIndex((l: string) => /^NIT\b/i.test(l));
   if (firstNitIdx >= 0) {
     for (let i = Math.max(0, firstNitIdx - 3); i < firstNitIdx; i++) {
       const c = lines[i];
@@ -18,28 +18,56 @@ export function parseSiigoInvoice(text: string, lines: string[]): Partial<Parsed
     issuerNit = rawNit.replace(/[.\s]/g, "").match(/[\d-]{6,14}/)?.[0] || "";
   }
 
-  const sIdx = lines.findIndex((l: string) => /^Se[ñn]ores?$/i.test(l));
+  const sIdx = lines.findIndex((l: string) => /^Se[ñn]ores/i.test(l));
   let clientName = "";
   let clientNit  = "";
   if (sIdx >= 0) {
-    clientName = clean(lines[sIdx + 1] || "");
-    const clientSlice = lines.slice(sIdx + 1, sIdx + 15);
-    const cNitIdx = clientSlice.findIndex((l: string) => /^NIT$/i.test(l));
-    if (cNitIdx >= 0) {
-      const rawNit = (clientSlice[cNitIdx + 1] || "").trim();
-      clientNit = rawNit.replace(/[.\s]/g, "").match(/[\d-]{6,14}/)?.[0] || "";
+    const line = lines[sIdx];
+    const sameLineMatch = line.match(/^Se[ñn]ores\s*(.+)/i);
+    if (sameLineMatch && sameLineMatch[1].length > 3) {
+      clientName = clean(sameLineMatch[1]).slice(0, 100);
+    } else {
+      for (let i = sIdx + 1; i <= sIdx + 3; i++) {
+        const l = lines[i];
+        if (l && l.length > 3 && !/^NIT|^Tel|^Dir/i.test(l)) {
+          clientName = clean(l).slice(0, 100);
+          break;
+        }
+      }
+    }
+    const clientSlice = lines.slice(sIdx, sIdx + 15);
+    const cNitLine = clientSlice.find((l: string) => /^NIT/i.test(l));
+    if (cNitLine) {
+      const afterLabel = cNitLine.replace(/^NIT\s*/i, "").trim();
+      const nitInLine = afterLabel.match(/([\d.\-]{6,20})/);
+      if (nitInLine) {
+        clientNit = nitInLine[1].replace(/[.\s]/g, "").match(/[\d-]{6,14}/)?.[0] || "";
+      } else {
+        const cNitIdx = clientSlice.findIndex((l: string) => /^NIT/i.test(l));
+        const nextLine = (clientSlice[cNitIdx + 1] || "").trim();
+        clientNit = nextLine.replace(/[.\s]/g, "").match(/[\d-]{6,14}/)?.[0] || "";
+      }
     }
   }
 
-  const numLineIdx = lines.findIndex((l: string) => /^No\.?\s*\d+$/i.test(l));
   let invoiceNumber = "";
+  const numLineIdx = lines.findIndex((l: string) =>
+    /^No\.?\s*[A-Z0-9\-]+\s*$/i.test(l) || /^N[°o]\s*[A-Z0-9\-]+\s*$/i.test(l)
+  );
   if (numLineIdx >= 0) {
-    invoiceNumber = lines[numLineIdx].replace(/^No\.?\s*/i, "").trim();
+    invoiceNumber = lines[numLineIdx].replace(/^N[o°]\.?\s*/i, "").trim();
   } else {
-    const numMatch = text.match(/(?:Factura|N[°o])\.\s*(\d+)/i) ||
-                     text.match(/\b(FEV[-\s]?[A-Z0-9\-]{3,20})\b/i);
-    invoiceNumber = numMatch ? numMatch[1] : "";
+    const numMatch =
+      text.match(/(?:Factura[^\n]{0,20}?N[°oú]?\.?|N[uú]mero de Factura|No\. de Factura)[:\s#]*([A-Z0-9\-]{3,30})/i) ||
+      text.match(/\b(FEV[-\s]?[A-Z0-9\-]{3,25})\b/i) ||
+      text.match(/\b(RV[0-9]{2,6})\b/i) ||
+      text.match(/\b(FE[-\s]?[A-Z0-9\-]{3,25})\b/i) ||
+      text.match(/(?:Factura|N[°o])\.\s*([A-Z0-9\-]{3,25})/i);
+    invoiceNumber = numMatch ? clean(numMatch[1]) : "";
   }
+
+  const cufeMatch = text.match(/CUFE[:\s]*([a-f0-9]{60,100})/i);
+  const cufe = cufeMatch ? cufeMatch[1] : "";
 
   const findDateAfterLabel = (label: RegExp): string => {
     const idx = lines.findIndex((l: string) => label.test(l));
@@ -56,12 +84,18 @@ export function parseSiigoInvoice(text: string, lines: string[]): Partial<Parsed
   const dueDate = findDateAfterLabel(/Fecha\s+de\s+[Vv]enc/i) || findDateAfterLabel(/Vencimiento/i);
 
   const items: any[] = [];
-  const vrTotalIdx = lines.findIndex((l: string) => /Vr\.?\s*[Tt]otal|Valor\s+[Tt]otal/i.test(l));
-  const endIdx = lines.findIndex((l: string, i: number) => i > vrTotalIdx && /Total\s+items?:/i.test(l));
 
-  if (vrTotalIdx >= 0) {
-    const stop = endIdx > vrTotalIdx ? endIdx : vrTotalIdx + 60;
-    let i = vrTotalIdx + 1;
+  const tableHeaderIdx = lines.findIndex((l: string) =>
+    /Vr\.?\s*[Tt]otal/i.test(l) || /Vr\.?\s*[Uu]nitario/i.test(l) ||
+    /Precio\s+[Uu]nitario/i.test(l) || /[ÍI]tem.*Descripci[oó]n/i.test(l)
+  );
+  const endIdx = lines.findIndex((l: string, i: number) =>
+    i > tableHeaderIdx && /Total\s+items?:/i.test(l)
+  );
+
+  if (tableHeaderIdx >= 0) {
+    const stop = endIdx > tableHeaderIdx ? endIdx : tableHeaderIdx + 60;
+    let i = tableHeaderIdx + 1;
     while (i < stop) {
       if (/^\d+$/.test(lines[i])) {
         const desc   = clean(lines[i + 1] || "");
@@ -75,6 +109,48 @@ export function parseSiigoInvoice(text: string, lines: string[]): Partial<Parsed
         }
       }
       i++;
+    }
+  }
+
+  if (items.length === 0) {
+    const tableStart = Math.max(0, tableHeaderIdx + 1);
+    const tableEnd = endIdx > tableStart ? endIdx : Math.min(lines.length, tableStart + 20);
+    for (let i = tableStart; i < tableEnd; i++) {
+      const line = lines[i];
+      if (!line) break;
+      if (/^Total\s+items?:|^Valor\s+en\s+Letras|^Condiciones/i.test(line)) break;
+
+      const itemNumMatch = line.match(/^(\d+)/);
+      if (!itemNumMatch) continue;
+
+      const rest = line.slice(itemNumMatch[1].length);
+      const totalMatch =
+        rest.match(/([1-9]\d{0,2}(?:,\d{3})+\.\d{2})$/) ||
+        rest.match(/([1-9]\d{0,2}(?:\.\d{3})+,\d{2})$/) ||
+        rest.match(/([1-9]\d{0,6}(?:[.,]\d{2})?)$/);
+      if (!totalMatch) continue;
+      const total = parseAmount(totalMatch[1]);
+      if (total <= 0) continue;
+
+      const beforeTotal = rest.slice(0, rest.length - totalMatch[1].length).trim();
+      const qtyMatch = beforeTotal.match(/(\d{1,4}(?:[.,]\d{2})?)\s*$/);
+      if (qtyMatch) {
+        const qty = parseAmount(qtyMatch[1]) || 1;
+        const description = clean(beforeTotal.slice(0, beforeTotal.length - qtyMatch[0].length));
+        if (description && total > 0) {
+          items.push({
+            description,
+            quantity: qty,
+            unit_price: parseFloat((total / qty).toFixed(2)),
+            total
+          });
+        }
+      } else {
+        const description = clean(beforeTotal);
+        if (description && total > 0) {
+          items.push({ description, quantity: 1, unit_price: total, total });
+        }
+      }
     }
   }
 
@@ -97,6 +173,7 @@ export function parseSiigoInvoice(text: string, lines: string[]): Partial<Parsed
     supplier_name: issuerName,
     document_number: issuerNit,
     invoice_number: invoiceNumber,
+    cufe,
     issue_date: issueDate,
     due_date: dueDate,
     subtotal,

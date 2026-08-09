@@ -1,318 +1,285 @@
 "use client";
 import React, { useState, useEffect, useCallback } from "react";
-import { Plus, X, Settings, Trash2, GripVertical, ChevronDown } from "lucide-react";
-import { LWChart } from "@/components/LWChart";
-import { cn } from "@/lib/utils";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  AreaChart, Area, PieChart, Pie, Cell,
+} from "recharts";
+import { TrendingUp, TrendingDown, DollarSign, FileText, AlertTriangle, Plus, Trash2 } from "lucide-react";
 
-// ── Types ──────────────────────────────────────────────────────────────────
-type ChartType  = "area" | "line" | "histogram";
-type DataSource = "income" | "expenses" | "balance" | "invoice_total" | "invoice_paid" | "invoice_pending";
-type Operator   = "+" | "-" | "*" | "/";
-
-interface Formula { a: DataSource; op: Operator; b: DataSource; }
-interface Widget {
-  id: string; title: string; type: ChartType;
-  source: DataSource; color: string;
-  formula?: Formula | null;
-  height: number;
-  year: number;
-}
-
-// ── Constants ──────────────────────────────────────────────────────────────
-const CHART_TYPES: { value: ChartType; label: string }[] = [
-  { value: "area",      label: "Área" },
-  { value: "line",      label: "Línea" },
-  { value: "histogram", label: "Barras" },
-];
-const SOURCES: { value: DataSource; label: string }[] = [
-  { value: "income",          label: "Ingresos Mensuales" },
-  { value: "expenses",        label: "Egresos Mensuales" },
-  { value: "balance",         label: "Balance Mensual" },
-  { value: "invoice_total",   label: "Facturas Emitidas (Total)" },
-  { value: "invoice_paid",    label: "Facturas Cobradas" },
-  { value: "invoice_pending", label: "Facturas Pendientes" },
-];
-const COLORS = ["#2563eb","#10b981","#ef4444","#f59e0b","#8b5cf6","#06b6d4","#ec4899","#64748b"];
 const MONTHS = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
-
-const fmtVal = (n: number) =>
-  n >= 1_000_000 ? `$${(n/1_000_000).toFixed(1)}M` : n >= 1_000 ? `$${(n/1_000).toFixed(0)}K` : `$${n}`;
-
-const mkId = () => Math.random().toString(36).slice(2, 9);
-
-// ── Helpers ────────────────────────────────────────────────────────────────
-const defaultWidget = (): Widget => ({
-  id: mkId(), title: "Nuevo Widget", type: "area",
-  source: "income", color: "#2563eb", formula: null, height: 220,
-  year: new Date().getFullYear(),
-});
+const COLORS = ["#2563eb","#10b981","#ef4444","#f59e0b","#8b5cf6","#06b6d4","#ec4899","#64748b"];
+const fmt = (n: number) => new Intl.NumberFormat("es-CO",{style:"currency",currency:"COP",minimumFractionDigits:0}).format(n);
+const fmtShort = (n: number) => n >= 1_000_000 ? `$${(n/1_000_000).toFixed(1)}M` : n >= 1_000 ? `$${(n/1_000).toFixed(0)}K` : `$${n}`;
 
 const STORAGE_KEY = "voltac_dashboard_widgets";
-const loadWidgets   = (): Widget[] => { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)||"[]"); } catch { return []; } };
-const saveWidgets   = (w: Widget[]) => localStorage.setItem(STORAGE_KEY, JSON.stringify(w));
 
-// ── Main component ──────────────────────────────────────────────────────────
+interface DashboardData {
+  cashflow: { income: number; expenses: number; balance: number };
+  invoices: { paid: number; pending: number; overdue: number; total_count: number };
+  clients_count: number;
+  pending_invoices: { count: number };
+  overdue_invoices: { count: number; amount: number };
+  top_clients: { name: string; total: number }[];
+  recent_transactions: any[];
+}
+
 export default function DashboardPage() {
-  const [widgets, setWidgets] = useState<Widget[]>([]);
-  const [transactions, setTransactions] = useState<any[]>([]);
-  const [invoices,     setInvoices]     = useState<any[]>([]);
-  const [editingId,    setEditingId]    = useState<string|null>(null);
-  const [draft,        setDraft]        = useState<Widget>(defaultWidget());
+  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [monthlyTx, setMonthlyTx] = useState<any[]>([]);
+  const [invoiceStatus, setInvoiceStatus] = useState<any[]>([]);
+  const [monthlyBalance, setMonthlyBalance] = useState<any[]>([]);
+  const [customWidgets, setCustomWidgets] = useState<any[]>([]);
+  const [showWidgetEditor, setShowWidgetEditor] = useState(false);
+  const [widgetDraft, setWidgetDraft] = useState({ title: "", type: "area", color: "#2563eb" });
 
-  // Load persisted widgets on mount (client-only)
-  useEffect(() => { setWidgets(loadWidgets()); }, []);
-
-  // Fetch raw data
   useEffect(() => {
-    fetch("/api/accounting/transactions").then(r=>r.json()).then(j=>{ if(j.success) setTransactions(j.data); });
-    fetch("/api/accounting/invoices?type=emitted").then(r=>r.json()).then(j=>{ if(j.success) setInvoices(j.data); });
+    Promise.all([
+      fetch("/api/accounting/dashboard").then(r=>r.json()),
+      fetch("/api/accounting/transactions").then(r=>r.json()),
+      fetch("/api/accounting/invoices?type=emitted").then(r=>r.json()),
+    ]).then(([dash, tx, inv]) => {
+      if (dash.success) setData(dash.data);
+      if (tx.success) buildMonthlyData(tx.data, inv.success ? inv.data : []);
+      if (!tx.success && inv.success) buildMonthlyData([], inv.data);
+      setLoading(false);
+    });
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      setCustomWidgets(saved);
+    } catch {}
   }, []);
 
-  // ── Data builder ──────────────────────────────────────────────────────────
-  const getMonthlyData = useCallback((source: DataSource, year: number) => {
-    return MONTHS.map((m, idx) => {
-      const dateStr = `${year}-${String(idx+1).padStart(2,"0")}-01`;
-      let value = 0;
-
-      if (source === "income" || source === "expenses" || source === "balance") {
-        const monthTx = transactions.filter(t => {
-          const d = new Date(t.date||"");
-          return d.getFullYear()===year && d.getMonth()===idx && t.status!=="Anulado";
-        });
-        if (source === "income")    value = monthTx.filter(t=>t.type==="Ingreso").reduce((a,t)=>a+t.amount,0);
-        if (source === "expenses")  value = monthTx.filter(t=>t.type==="Egreso").reduce((a,t)=>a+t.amount,0);
-        if (source === "balance") {
-          const inc = monthTx.filter(t=>t.type==="Ingreso").reduce((a,t)=>a+t.amount,0);
-          const exp = monthTx.filter(t=>t.type==="Egreso").reduce((a,t)=>a+t.amount,0);
-          value = inc - exp;
-        }
-      } else {
-        const monthInv = invoices.filter(i => {
-          const d = new Date(i.issue_date||"");
-          return d.getFullYear()===year && d.getMonth()===idx && i.status!=="Anulada";
-        });
-        if (source === "invoice_total")   value = monthInv.reduce((a,i)=>a+(i.total||0),0);
-        if (source === "invoice_paid")    value = monthInv.filter(i=>i.status==="Pagada").reduce((a,i)=>a+(i.total||0),0);
-        if (source === "invoice_pending") value = monthInv.filter(i=>["Enviada","Parcialmente pagada","Vencida"].includes(i.status)).reduce((a,i)=>a+(i.total||0),0);
-      }
-      return { time: dateStr, value };
+  const buildMonthlyData = (transactions: any[], invoices: any[]) => {
+    const income = MONTHS.map((_, idx) => {
+      const monthTx = transactions.filter((t: any) => {
+        const d = new Date(t.date||"");
+        return d.getMonth()===idx && d.getFullYear()===new Date().getFullYear() && t.status!=="Anulado";
+      });
+      const inc = monthTx.filter((t:any)=>t.type==="Ingreso").reduce((a:number,t:any)=>a+t.amount,0);
+      const exp = monthTx.filter((t:any)=>t.type==="Egreso").reduce((a:number,t:any)=>a+t.amount,0);
+      return { month: MONTHS[idx], income: inc, expenses: exp, balance: inc - exp };
     });
-  }, [transactions, invoices]);
+    setMonthlyTx(income);
+    setMonthlyBalance(income.map(m => ({ month: m.month, balance: m.balance })));
 
-  const getWidgetData = useCallback((w: Widget) => {
-    if (!w.formula) return getMonthlyData(w.source, w.year);
-    const a = getMonthlyData(w.formula.a, w.year);
-    const b = getMonthlyData(w.formula.b, w.year);
-    return a.map((pt, i) => {
-      let v = pt.value;
-      const bv = b[i]?.value ?? 0;
-      if      (w.formula!.op==="+") v = pt.value + bv;
-      else if (w.formula!.op==="-") v = pt.value - bv;
-      else if (w.formula!.op==="*") v = pt.value * bv;
-      else if (w.formula!.op==="/") v = bv !== 0 ? pt.value / bv : 0;
-      return { ...pt, value: v };
-    });
-  }, [getMonthlyData]);
+    const paid = invoices.filter((i:any)=>i.status==="Pagada").reduce((a:number,i:any)=>a+(i.total||0),0);
+    const pending = invoices.filter((i:any)=>["Enviada","Parcialmente pagada"].includes(i.status)).reduce((a:number,i:any)=>a+(i.total||0),0);
+    const overdue = invoices.filter((i:any)=>i.status==="Vencida").reduce((a:number,i:any)=>a+(i.total||0),0);
+    setInvoiceStatus([
+      { name: "Cobradas", value: paid, color: "#10b981" },
+      { name: "Pendientes", value: pending, color: "#f59e0b" },
+      { name: "Vencidas", value: overdue, color: "#ef4444" },
+    ].filter(s => s.value > 0));
+  };
 
-  // ── Widget CRUD ───────────────────────────────────────────────────────────
   const addWidget = () => {
-    const w = defaultWidget();
-    setDraft(w);
-    setEditingId("new");
+    const w = { id: Date.now(), ...widgetDraft, data: monthlyTx };
+    const updated = [...customWidgets, w];
+    setCustomWidgets(updated);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
+    setShowWidgetEditor(false);
+    setWidgetDraft({ title: "", type: "area", color: "#2563eb" });
   };
 
-  const saveWidget = () => {
-    const updated = editingId === "new"
-      ? [...widgets, draft]
-      : widgets.map(w => w.id === editingId ? draft : w);
-    setWidgets(updated);
-    saveWidgets(updated);
-    setEditingId(null);
+  const removeWidget = (id: number) => {
+    const updated = customWidgets.filter((w:any) => w.id !== id);
+    setCustomWidgets(updated);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
   };
 
-  const deleteWidget = (id: string) => {
-    const updated = widgets.filter(w => w.id !== id);
-    setWidgets(updated);
-    saveWidgets(updated);
-    if (editingId === id) setEditingId(null);
-  };
+  if (loading) return (
+    <div className="flex items-center justify-center h-64 text-muted-foreground">Cargando dashboard...</div>
+  );
 
-  const openEdit = (w: Widget) => { setDraft({ ...w }); setEditingId(w.id); };
-
-  const srcLabel = (s: DataSource) => SOURCES.find(x=>x.value===s)?.label || s;
-
-  const useFormula = !!draft.formula;
+  const kpi = data?.cashflow;
+  const inv = data?.invoices;
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-secondary">Dashboard Dinámico</h2>
-          <p className="text-muted-foreground text-sm mt-1">Crea y personaliza gráficas con tus datos financieros.</p>
+          <h2 className="text-2xl font-bold text-secondary">Dashboard</h2>
+          <p className="text-muted-foreground text-sm mt-1">Resumen financiero de tu empresa.</p>
         </div>
-        <button onClick={addWidget} className="flex items-center gap-2 bg-primary text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors">
-          <Plus size={16}/> Agregar Widget
+        <button onClick={()=>setShowWidgetEditor(v=>!v)}
+          className="flex items-center gap-2 bg-primary text-white px-4 py-1.5 rounded-lg text-sm font-semibold hover:bg-primary/90 transition-colors">
+          <Plus size={16}/> Widget
         </button>
       </div>
 
-      {/* Empty state */}
-      {widgets.length === 0 && (
-        <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed border-border rounded-2xl text-center space-y-3">
-          <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center"><Plus size={22} className="text-primary"/></div>
-          <p className="font-semibold text-foreground">Sin widgets aún</p>
-          <p className="text-sm text-muted-foreground">Agrega tu primer widget para empezar a visualizar datos</p>
-          <button onClick={addWidget} className="mt-2 px-4 py-2 bg-primary text-white text-sm font-medium rounded-lg hover:bg-primary/90">Agregar Widget</button>
+      {/* KPI Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+        <KpiCard icon={<TrendingUp size={18}/>} label="Ingresos" value={fmt(kpi?.income||0)} color="text-green-600" bg="bg-green-50 border-green-200" />
+        <KpiCard icon={<TrendingDown size={18}/>} label="Egresos" value={fmt(kpi?.expenses||0)} color="text-red-500" bg="bg-red-50 border-red-200" />
+        <KpiCard icon={<DollarSign size={18}/>} label="Balance" value={fmt(kpi?.balance||0)} color={(kpi?.balance||0)>=0?"text-green-600":"text-red-500"} bg={(kpi?.balance||0)>=0?"bg-green-50 border-green-200":"bg-red-50 border-red-200"} />
+        <KpiCard icon={<FileText size={18}/>} label="Facturado" value={fmt((inv?.paid||0)+(inv?.pending||0)+(inv?.overdue||0))} color="text-blue-600" bg="bg-blue-50 border-blue-200" />
+        <KpiCard icon={<AlertTriangle size={18}/>} label="Pendientes" value={String(data?.pending_invoices?.count||0)} color="text-amber-600" bg="bg-amber-50 border-amber-200" />
+        <KpiCard icon={<AlertTriangle size={18}/>} label="Vencidas" value={fmt(data?.overdue_invoices?.amount||0)} color="text-red-500" bg="bg-red-50 border-red-200" />
+      </div>
+
+      {/* Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* Monthly Income vs Expenses */}
+        <ChartCard title="Ingresos vs Egresos Mensuales" subtitle={`${new Date().getFullYear()}`}>
+          <ResponsiveContainer width="100%" height={260}>
+            <BarChart data={monthlyTx} barGap={2}>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.1)" />
+              <XAxis dataKey="month" tick={{fontSize:11}} tickLine={false} axisLine={{stroke:"rgba(128,128,128,0.15)"}} />
+              <YAxis tickFormatter={fmtShort} tick={{fontSize:11}} tickLine={false} axisLine={false} />
+              <Tooltip formatter={(v: any) => fmt(Number(v)||0)} contentStyle={{borderRadius:12,fontSize:13}} />
+              <Bar dataKey="income" name="Ingresos" fill="#10b981" radius={[4,4,0,0]} />
+              <Bar dataKey="expenses" name="Egresos" fill="#ef4444" radius={[4,4,0,0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartCard>
+
+        {/* Invoice Status Pie */}
+        <ChartCard title="Estado de Facturación" subtitle="Emitidas">
+          {invoiceStatus.length > 0 ? (
+            <div className="flex items-center gap-4">
+              <ResponsiveContainer width="55%" height={240}>
+                <PieChart>
+                  <Pie data={invoiceStatus} cx="50%" cy="50%" innerRadius={55} outerRadius={90} paddingAngle={4} dataKey="value">
+                    {invoiceStatus.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                  </Pie>
+                  <Tooltip formatter={(v: any) => fmt(Number(v)||0)} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="space-y-3">
+                {invoiceStatus.map((s: any) => (
+                  <div key={s.name} className="flex items-center gap-2 text-sm">
+                    <span className="w-3 h-3 rounded-full" style={{backgroundColor:s.color}} />
+                    <span className="text-muted-foreground">{s.name}</span>
+                    <span className="font-semibold text-foreground">{fmt(s.value)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-40 text-sm text-muted-foreground">Sin facturas registradas</div>
+          )}
+        </ChartCard>
+
+        {/* Monthly Balance Trend */}
+        <ChartCard title="Balance Mensual" subtitle="Ingresos - Egresos">
+          <ResponsiveContainer width="100%" height={260}>
+            <AreaChart data={monthlyBalance}>
+              <defs>
+                <linearGradient id="balanceGrad" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.1)" />
+              <XAxis dataKey="month" tick={{fontSize:11}} tickLine={false} axisLine={{stroke:"rgba(128,128,128,0.15)"}} />
+              <YAxis tickFormatter={fmtShort} tick={{fontSize:11}} tickLine={false} axisLine={false} />
+              <Tooltip formatter={(v: any) => fmt(Number(v)||0)} contentStyle={{borderRadius:12,fontSize:13}} />
+              <Area type="monotone" dataKey="balance" stroke="#2563eb" strokeWidth={2} fill="url(#balanceGrad)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </ChartCard>
+
+        {/* Top Clients */}
+        <ChartCard title="Top Clientes" subtitle="Por facturación">
+          {data?.top_clients && data.top_clients.length > 0 ? (
+            <div className="space-y-3 pt-2">
+              {data.top_clients.map((c: any, i: number) => (
+                <div key={i} className="flex items-center gap-3">
+                  <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-bold flex items-center justify-center shrink-0">{i+1}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{c.name}</p>
+                    <div className="h-1.5 bg-secondary/10 rounded-full mt-1 overflow-hidden">
+                      <div className="h-full bg-primary rounded-full" style={{width:`${Math.min(100,(c.total/(data.top_clients[0]?.total||1))*100)}%`}} />
+                    </div>
+                  </div>
+                  <span className="text-sm font-bold text-foreground shrink-0">{fmt(c.total)}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-40 text-sm text-muted-foreground">Sin datos de clientes</div>
+          )}
+        </ChartCard>
+      </div>
+
+      {/* Custom Widgets */}
+      {customWidgets.length > 0 && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+          {customWidgets.map((w: any) => (
+            <ChartCard key={w.id} title={w.title} subtitle="Widget personalizado" actions={
+              <button onClick={()=>removeWidget(w.id)} className="p-1.5 hover:bg-destructive/10 rounded-lg text-destructive transition-colors"><Trash2 size={14}/></button>
+            }>
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={monthlyTx}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.1)" />
+                  <XAxis dataKey="month" tick={{fontSize:11}} tickLine={false} axisLine={{stroke:"rgba(128,128,128,0.15)"}} />
+                  <YAxis tickFormatter={fmtShort} tick={{fontSize:11}} tickLine={false} axisLine={false} />
+                  <Tooltip formatter={(v: any) => fmt(Number(v)||0)} contentStyle={{borderRadius:12,fontSize:13}} />
+                  <Area type="monotone" dataKey="balance" stroke={w.color} strokeWidth={2} fill={w.color+"20"} />
+                </AreaChart>
+              </ResponsiveContainer>
+            </ChartCard>
+          ))}
         </div>
       )}
 
-      {/* Widgets grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        {widgets.map(w => {
-          const chartData = getWidgetData(w);
-          const total = chartData.reduce((a, d) => a + d.value, 0);
-          return (
-            <div key={w.id} className="bg-background border border-border rounded-xl overflow-hidden shadow-sm">
-              <div className="flex items-center justify-between px-5 py-3 border-b border-border">
-                <div>
-                  <p className="font-semibold text-sm text-foreground">{w.title}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {w.formula ? `${srcLabel(w.formula.a)} ${w.formula.op} ${srcLabel(w.formula.b)}` : srcLabel(w.source)}
-                    {" · "}{w.year}
-                  </p>
-                </div>
-                <div className="flex items-center gap-1">
-                  <span className="text-xs font-bold text-primary mr-2">{fmtVal(total)}</span>
-                  <button onClick={() => openEdit(w)} className="p-1.5 hover:bg-secondary/10 rounded-lg text-muted-foreground transition-colors"><Settings size={14}/></button>
-                  <button onClick={() => deleteWidget(w.id)} className="p-1.5 hover:bg-destructive/10 rounded-lg text-destructive transition-colors"><Trash2 size={14}/></button>
-                </div>
-              </div>
-              <div className="px-4 pt-3 pb-2">
-                <LWChart data={chartData} type={w.type} color={w.color} height={w.height} />
-              </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Edit/New Widget Panel */}
-      {editingId && (
+      {/* Widget Editor Modal */}
+      {showWidgetEditor && (
         <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-card w-full max-w-lg rounded-2xl border border-border shadow-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-5 border-b border-border sticky top-0 bg-card z-10">
-              <h3 className="font-bold text-foreground">{editingId==="new"?"Nuevo Widget":"Editar Widget"}</h3>
-              <button onClick={()=>setEditingId(null)} className="p-1.5 hover:bg-secondary/10 rounded-full"><X size={18}/></button>
+          <div className="bg-card w-full max-w-md rounded-2xl border border-border shadow-2xl p-6 space-y-4">
+            <h3 className="font-bold text-foreground">Nuevo Widget Personalizado</h3>
+            <div>
+              <label className="block text-sm font-medium mb-1">Título</label>
+              <input value={widgetDraft.title} onChange={e=>setWidgetDraft(d=>({...d,title:e.target.value}))}
+                className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none" placeholder="Ej. Balance General"/>
             </div>
-            <div className="p-5 space-y-4">
-              <div>
-                <label className="block text-sm font-medium mb-1">Título</label>
-                <input value={draft.title} onChange={e=>setDraft(d=>({...d,title:e.target.value}))}
-                  className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"/>
+            <div>
+              <label className="block text-sm font-medium mb-1">Color</label>
+              <div className="flex gap-2 flex-wrap">
+                {COLORS.map(c=>(
+                  <button key={c} onClick={()=>setWidgetDraft(d=>({...d,color:c}))}
+                    className="w-7 h-7 rounded-full border-2 transition-transform hover:scale-110"
+                    style={{backgroundColor:c, borderColor: widgetDraft.color===c ? "var(--foreground)" : "transparent"}} />
+                ))}
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Tipo de Gráfica</label>
-                  <select value={draft.type} onChange={e=>setDraft(d=>({...d,type:e.target.value as ChartType}))}
-                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none text-foreground">
-                    {CHART_TYPES.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Año</label>
-                  <select value={draft.year} onChange={e=>setDraft(d=>({...d,year:Number(e.target.value)}))}
-                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none text-foreground">
-                    {[2024,2025,2026,2027].map(y=><option key={y}>{y}</option>)}
-                  </select>
-                </div>
-              </div>
-
-              {/* Data source vs formula toggle */}
-              <div>
-                <label className="flex items-center gap-2 text-sm font-medium mb-3 cursor-pointer">
-                  <input type="checkbox" checked={useFormula} className="w-4 h-4 accent-primary"
-                    onChange={e=>setDraft(d=>({...d, formula: e.target.checked ? { a:"income", op:"-", b:"expenses" } : null}))} />
-                  Usar fórmula (combinar dos métricas)
-                </label>
-
-                {!useFormula ? (
-                  <div>
-                    <label className="block text-xs font-medium mb-1 text-muted-foreground">Fuente de datos</label>
-                    <select value={draft.source} onChange={e=>setDraft(d=>({...d,source:e.target.value as DataSource}))}
-                      className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm focus:outline-none text-foreground">
-                      {SOURCES.map(s=><option key={s.value} value={s.value}>{s.label}</option>)}
-                    </select>
-                  </div>
-                ) : (
-                  <div className="bg-secondary/5 rounded-xl p-4 space-y-3 border border-border">
-                    <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Configurar Fórmula</p>
-                    <div className="grid grid-cols-5 gap-2 items-center">
-                      <div className="col-span-2">
-                        <label className="block text-xs mb-1 text-muted-foreground">Métrica A</label>
-                        <select value={draft.formula!.a} onChange={e=>setDraft(d=>({...d,formula:{...d.formula!,a:e.target.value as DataSource}}))}
-                          className="w-full bg-background border border-border rounded-lg px-2 py-1.5 text-xs focus:outline-none text-foreground">
-                          {SOURCES.map(s=><option key={s.value} value={s.value}>{s.label}</option>)}
-                        </select>
-                      </div>
-                      <div className="text-center">
-                        <label className="block text-xs mb-1 text-muted-foreground">Op.</label>
-                        <select value={draft.formula!.op} onChange={e=>setDraft(d=>({...d,formula:{...d.formula!,op:e.target.value as Operator}}))}
-                          className="w-full bg-background border border-border rounded-lg px-2 py-1.5 text-xs focus:outline-none text-foreground text-center">
-                          {(["+","-","*","/"] as Operator[]).map(o=><option key={o}>{o}</option>)}
-                        </select>
-                      </div>
-                      <div className="col-span-2">
-                        <label className="block text-xs mb-1 text-muted-foreground">Métrica B</label>
-                        <select value={draft.formula!.b} onChange={e=>setDraft(d=>({...d,formula:{...d.formula!,b:e.target.value as DataSource}}))}
-                          className="w-full bg-background border border-border rounded-lg px-2 py-1.5 text-xs focus:outline-none text-foreground">
-                          {SOURCES.map(s=><option key={s.value} value={s.value}>{s.label}</option>)}
-                        </select>
-                      </div>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Resultado: <strong className="text-foreground">{srcLabel(draft.formula!.a)} {draft.formula!.op} {srcLabel(draft.formula!.b)}</strong>
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Color */}
-              <div>
-                <label className="block text-sm font-medium mb-2">Color</label>
-                <div className="flex gap-2 flex-wrap">
-                  {COLORS.map(c=>(
-                    <button key={c} onClick={()=>setDraft(d=>({...d,color:c}))}
-                      className={cn("w-7 h-7 rounded-full border-2 transition-transform hover:scale-110", draft.color===c ? "border-foreground scale-110" : "border-transparent")}
-                      style={{ backgroundColor: c }} />
-                  ))}
-                </div>
-              </div>
-
-              {/* Height */}
-              <div>
-                <label className="block text-sm font-medium mb-1">Altura del gráfico: {draft.height}px</label>
-                <input type="range" min={150} max={400} step={10} value={draft.height}
-                  onChange={e=>setDraft(d=>({...d,height:Number(e.target.value)}))}
-                  className="w-full accent-primary" />
-              </div>
-
-              {/* Preview */}
-              {(transactions.length>0||invoices.length>0) && (
-                <div className="border border-border rounded-xl p-3 bg-background">
-                  <p className="text-xs text-muted-foreground mb-2">Preview</p>
-                  <LWChart data={getWidgetData(draft)} type={draft.type} color={draft.color} height={draft.height} />
-                </div>
-              )}
             </div>
-            <div className="p-5 border-t border-border flex justify-end gap-3 bg-secondary/5 rounded-b-2xl sticky bottom-0">
-              <button onClick={()=>setEditingId(null)} className="px-4 py-2 text-sm border border-border rounded-lg hover:bg-background transition-colors text-foreground">Cancelar</button>
-              <button onClick={saveWidget} disabled={!draft.title}
-                className="px-5 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-60">
-                {editingId==="new" ? "Agregar" : "Guardar"}
-              </button>
+            <div className="flex gap-3 justify-end pt-2">
+              <button onClick={()=>setShowWidgetEditor(false)} className="px-4 py-2 text-sm border border-border rounded-lg hover:bg-background text-foreground">Cancelar</button>
+              <button onClick={addWidget} disabled={!widgetDraft.title}
+                className="px-5 py-2 bg-primary text-white text-sm font-semibold rounded-lg hover:bg-primary/90 disabled:opacity-60">Agregar</button>
             </div>
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function KpiCard({ icon, label, value, color, bg }: { icon: React.ReactNode; label: string; value: string; color: string; bg: string }) {
+  return (
+    <div className={`bg-background border rounded-xl p-4 shadow-sm ${bg.replace("bg-","border-").split(" ")[0]||""}`}>
+      <div className="flex items-center gap-2 mb-1">
+        <span className={color}>{icon}</span>
+        <p className="text-xs text-muted-foreground font-medium">{label}</p>
+      </div>
+      <p className={`text-lg font-bold mt-1 ${color}`}>{value}</p>
+    </div>
+  );
+}
+
+function ChartCard({ title, subtitle, children, actions }: { title: string; subtitle?: string; children: React.ReactNode; actions?: React.ReactNode }) {
+  return (
+    <div className="bg-background border border-border rounded-xl overflow-hidden shadow-sm">
+      <div className="flex items-center justify-between px-5 py-3 border-b border-border">
+        <div>
+          <p className="font-semibold text-sm text-foreground">{title}</p>
+          {subtitle && <p className="text-xs text-muted-foreground">{subtitle}</p>}
+        </div>
+        {actions}
+      </div>
+      <div className="p-4">{children}</div>
     </div>
   );
 }
