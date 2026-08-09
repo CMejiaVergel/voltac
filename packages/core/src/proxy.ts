@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, adminConfig, verifySession } from "./auth";
+import { INICIO, rolesPara } from "./roles";
 
 /**
  * Portero único de las dos líneas de negocio.
@@ -11,37 +12,20 @@ import { SESSION_COOKIE, adminConfig, verifySession } from "./auth";
  * implementación, proteger algo nuevo se hace una vez y las dos marcas quedan
  * cubiertas.
  *
- * Tres responsabilidades:
+ * Cuatro responsabilidades:
  *
- *  1. **Control de acceso** a /admin y a las APIs internas, en el servidor,
- *     antes de que se ejecute código de página.
- *  2. **Cabeceras de seguridad** en todo el sitio.
- *  3. **Invisibilidad del panel**: sin sesión responde 404, no un redirect al
- *     login. Un redirect confirma que la ruta existe; un 404 no dice nada.
+ *  1. **Autenticación**: sin sesión válida no se pasa de aquí.
+ *  2. **Autorización**: qué rol alcanza qué ruta, según el mapa de `roles.ts`.
+ *  3. **Cabeceras de seguridad** en todo el sitio.
+ *  4. **Invisibilidad**: lo que no le corresponde a alguien responde 404, no un
+ *     mensaje de acceso denegado. Un 403 confirma que el módulo existe; un 404
+ *     no dice nada. Vale tanto para un desconocido como para el moderador, que
+ *     trabaja también con otras empresas y no tiene por qué conocer el mapa
+ *     completo del panel.
  */
-
-/**
- * Rutas que exigen sesión administrativa.
- *
- * Fuera de esta lista, deliberadamente:
- *
- *  - `/api/uploads` sirve las imágenes de proyectos y noticias que se muestran
- *    en las páginas públicas. Su protección es otra —contención de ruta y lista
- *    blanca de extensiones dentro del endpoint—, no el control de acceso.
- *  - `/api/leads` (solo existe en Energy) se autentica con token Bearer para la
- *    ingesta externa de prospectos: es código llamando a código, no una
- *    persona con sesión. Es la base de la ingesta multicanal.
- *  - `/api/analytics` recibe eventos del sitio público; valida el tipo de
- *    evento y no expone lectura.
- */
-export const PROTECTED_PREFIXES = ["/admin", "/api/accounting"];
 
 /** Única puerta de entrada; se sirve siempre. */
 export const LOGIN_PATH = "/admin/login";
-
-function alcanza(pathname: string, prefijo: string): boolean {
-  return pathname === prefijo || pathname.startsWith(`${prefijo}/`);
-}
 
 function cabecerasSeguridad(response: NextResponse, esAdmin: boolean): NextResponse {
   const h = response.headers;
@@ -68,12 +52,15 @@ function cabecerasSeguridad(response: NextResponse, esAdmin: boolean): NextRespo
   return response;
 }
 
+function noEncontrado(): NextResponse {
+  return new NextResponse(null, { status: 404, headers: { "content-type": "text/html" } });
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  const protegida = PROTECTED_PREFIXES.some((p) => alcanza(pathname, p));
-
-  if (!protegida) return cabecerasSeguridad(NextResponse.next(), false);
+  const permitidos = rolesPara(pathname);
+  if (permitidos === null) return cabecerasSeguridad(NextResponse.next(), false);
   if (pathname === LOGIN_PATH) return cabecerasSeguridad(NextResponse.next(), true);
 
   const config = adminConfig();
@@ -81,16 +68,30 @@ export async function proxy(request: NextRequest) {
     ? await verifySession(request.cookies.get(SESSION_COOKIE)?.value, config.secret)
     : null;
 
+  const esApi = pathname.startsWith("/api/");
+
   if (!sesion) {
     // Para APIs, un 401 honesto: quien las consume es código, no una persona.
-    if (pathname.startsWith("/api/")) {
+    if (esApi) {
       return cabecerasSeguridad(NextResponse.json({ error: "No autorizado" }, { status: 401 }), true);
     }
-    // Para el panel, 404: indistinguible de una ruta que no existe.
-    return cabecerasSeguridad(
-      new NextResponse(null, { status: 404, headers: { "content-type": "text/html" } }),
-      true,
-    );
+    return cabecerasSeguridad(noEncontrado(), true);
+  }
+
+  if (!permitidos.includes(sesion.rol)) {
+    // El login siempre manda a /admin. Quien no sea propietario no tiene
+    // dashboard general, así que se le lleva a su propia portada en lugar de
+    // recibirlo con un 404 justo después de entrar bien.
+    if (pathname === "/admin") {
+      return cabecerasSeguridad(
+        NextResponse.redirect(new URL(INICIO[sesion.rol], request.url)),
+        true,
+      );
+    }
+    if (esApi) {
+      return cabecerasSeguridad(NextResponse.json({ error: "Sin permiso" }, { status: 403 }), true);
+    }
+    return cabecerasSeguridad(noEncontrado(), true);
   }
 
   return cabecerasSeguridad(NextResponse.next(), true);

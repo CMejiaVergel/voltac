@@ -7,7 +7,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useSesion } from "@voltac/core/sesion-cliente";
-import { ROL_ETIQUETA } from "@voltac/core/roles";
+import { ROL_ETIQUETA, puedeAcceder } from "@voltac/core/roles";
 import { logout } from "./login/actions";
 
 export default function AdminShell({ children }: { children: React.ReactNode }) {
@@ -25,6 +25,9 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     return <>{children}</>;
   }
 
+  /* La navegacion se filtra con el mismo mapa que aplica el proxy, asi que un
+     enlace visible siempre lleva a algo alcanzable. Ocultar aqui es comodidad,
+     no seguridad: quien decide es el servidor. */
   const navItems = [
     { label: "Dashboard", icon: <LayoutDashboard size={20}/>, href: "/admin" },
     { label: "Leads (CRM)", icon: <Users size={20}/>, href: "/admin/leads" },
@@ -34,7 +37,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     { label: "Accounting", icon: <Calculator size={20}/>, href: "/admin/accounting" },
     { label: "Preview", icon: <Eye size={20}/>, href: "/admin/preview" },
     { label: "Configuración", icon: <Settings size={20}/>, href: "/admin/configuracion" },
-  ];
+  ].filter((item) => !sesion || puedeAcceder(sesion.rol, item.href));
 
   return (
     <div className="h-screen bg-muted/50 flex flex-col md:flex-row overflow-hidden">

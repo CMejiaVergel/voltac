@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { cn } from "../../utils";
 import { useSesion } from "../../sesion-cliente";
-import { ROL_ETIQUETA, type Rol } from "../../roles";
+import { ROL_ETIQUETA, puedeAcceder, type Rol } from "../../roles";
 import { LayoutDashboard, ArrowLeftRight, FileText, FileSignature, Users, Calendar, BarChart, Settings } from "lucide-react";
 
 /**
@@ -19,7 +19,7 @@ export default function AccountingLayout({ children }: { children: React.ReactNo
   const sesion = useSesion();
   const rol: Rol | null = sesion?.rol ?? null;
 
-  const navItems: { label: string; href: string; icon: React.ReactNode; exact?: boolean; roles?: Rol[] }[] = [
+  const navItems: { label: string; href: string; icon: React.ReactNode; exact?: boolean }[] = [
     { label: "Resumen",   href: "/admin/accounting",                     icon: <LayoutDashboard size={18} />, exact: true },
     { label: "Dashboard", href: "/admin/accounting/dashboard",            icon: <BarChart size={18} /> },
     { label: "Ingresos & Egresos", href: "/admin/accounting/ingresos-egresos", icon: <ArrowLeftRight size={18} /> },
@@ -28,7 +28,7 @@ export default function AccountingLayout({ children }: { children: React.ReactNo
     { label: "Clientes & Proveedores", href: "/admin/accounting/clientes-proveedores", icon: <Users size={18} /> },
     { label: "Calendario", href: "/admin/accounting/calendario",          icon: <Calendar size={18} /> },
     { label: "Reportes",   href: "/admin/accounting/reportes",            icon: <BarChart size={18} /> },
-    { label: "Configuración", href: "/admin/accounting/configuracion",    icon: <Settings size={18} />, roles: ["propietario"] },
+    { label: "Configuración", href: "/admin/accounting/configuracion",    icon: <Settings size={18} /> },
   ];
 
   if (!rol) return <div>Cargando módulo contable...</div>;
@@ -49,7 +49,8 @@ export default function AccountingLayout({ children }: { children: React.ReactNo
       <div className="border-b border-border pt-2">
         <nav className="flex gap-2 overflow-x-auto no-scrollbar pb-[1px]">
           {navItems.map((item) => {
-            if (item.roles && !item.roles.includes(rol)) return null;
+            // Mismo mapa que aplica el proxy: una sola lista que revisar.
+            if (!puedeAcceder(rol, item.href)) return null;
             const isActive = item.exact ? pathname === item.href : pathname.startsWith(item.href);
             
             return (
