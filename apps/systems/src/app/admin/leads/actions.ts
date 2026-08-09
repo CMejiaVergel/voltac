@@ -2,18 +2,23 @@
 
 import { getDB } from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { adminConfig, safeEqual, sha256Hex } from "@voltac/core/auth";
+import { sesionActual } from "@voltac/core/sesion";
+import { confirmarPassword } from "@voltac/core/usuarios";
 
 /**
- * Segunda confirmacion para las acciones destructivas. Antes comparaba contra
- * una cadena escrita en el codigo —publicada, por tanto, en el repositorio—.
- * Ahora se valida contra el mismo hash del entorno que usa el login.
+ * Segunda confirmacion para las acciones destructivas.
+ *
+ * Empezo comparando contra una cadena escrita en el codigo —publicada, por
+ * tanto, en el repositorio—, y paso despues al hash del entorno. Ahora se
+ * comprueba contra la cuenta de quien esta actuando: si el propietario cambia
+ * su contrasena desde el panel, esta confirmacion la sigue, y la auditoria
+ * puede decir quien autorizo el borrado en lugar de "alguien con la clave".
  */
 async function confirmarClaveAdmin(pass: string): Promise<{ ok: boolean; error?: string }> {
-  const config = adminConfig();
-  if (!config) return { ok: false, error: "El acceso administrativo no esta configurado en el servidor." };
-  const ok = safeEqual(await sha256Hex(pass ?? ""), config.passwordHash);
-  return ok ? { ok: true } : { ok: false, error: "Contrasena administrativa incorrecta." };
+  const sesion = await sesionActual();
+  if (!sesion) return { ok: false, error: "La sesion no es valida. Vuelva a entrar." };
+  const ok = await confirmarPassword(sesion.sub, pass ?? "");
+  return ok ? { ok: true } : { ok: false, error: "Contrasena incorrecta." };
 }
 
 export async function updateLeadStage(id: number, stage: string, status: string, author: string = "Admin") {

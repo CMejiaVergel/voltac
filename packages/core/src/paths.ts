@@ -35,6 +35,18 @@ export function accountingPath(): string {
 }
 
 /**
+ * Identidad: usuarios del panel y registro de auditoría.
+ *
+ * Va aparte de la contabilidad aunque las dos sean compartidas. El guion de
+ * restauración repone la contabilidad a un punto anterior cuando algo sale mal,
+ * y arrastrar en esa vuelta atrás las cuentas de usuario y el registro de quién
+ * hizo qué sería perder justo lo que hace falta para entender el incidente.
+ */
+export function systemPath(): string {
+  return join(dataDir(), "sistema.db");
+}
+
+/**
  * Raíz de los archivos subidos desde el panel.
  *
  * Los adjuntos sí se separan por línea de negocio: las imágenes de un proyecto

@@ -2,7 +2,7 @@ import sqlite3 from 'sqlite3';
 import { open, Database } from 'sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { accountingPath, operationalPath } from './paths';
+import { accountingPath, operationalPath, systemPath } from './paths';
 import { currentVertical } from './vertical';
 
 /**
@@ -12,6 +12,7 @@ import { currentVertical } from './vertical';
  *
  *   DATA_DIR/
  *     contabilidad.db      <- una sola: la empresa es una sola
+ *     sistema.db           <- usuarios del panel y auditoria, tambien comunes
  *     systems/voltac.db    <- prospectos, proyectos y noticias de esa marca
  *     energy/voltac.db     <- idem, de la otra marca
  *
@@ -41,11 +42,54 @@ export async function getDB() {
     mkdirSync(dirname(accountingPath()), { recursive: true });
     await db.exec(`ATTACH DATABASE '${accountingPath().replace(/'/g, "''")}' AS conta`);
 
+    // Identidad: quien entra al panel y que hizo. Tambien de la empresa, pero
+    // en archivo propio para que restaurar la contabilidad no vuelva atras las
+    // cuentas de usuario ni el registro de auditoria.
+    await db.exec(`ATTACH DATABASE '${systemPath().replace(/'/g, "''")}' AS sys`);
+
     // Integridad referencial y espera ante escrituras concurrentes: dos
     // aplicaciones escriben ahora sobre el mismo archivo de contabilidad.
     await db.exec('PRAGMA foreign_keys = ON');
     await db.exec('PRAGMA busy_timeout = 5000');
     await db.exec('PRAGMA journal_mode = WAL');
+
+    /*
+     * Usuarios del panel.
+     *
+     * Antes no habia tabla: el acceso era un usuario y una contrasena en
+     * variables de entorno, una sola identidad para toda la empresa. Con
+     * contadores y moderadores entrando al mismo panel eso deja de servir, no
+     * por los permisos sino porque no se puede saber quien hizo que.
+     *
+     * `usuario` es NOCASE a proposito: nadie deberia quedarse fuera por haber
+     * escrito su nombre con mayuscula inicial.
+     */
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS sys.usuarios (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        usuario TEXT NOT NULL COLLATE NOCASE UNIQUE,
+        nombre TEXT NOT NULL DEFAULT '',
+        password_hash TEXT NOT NULL,
+        rol TEXT NOT NULL,
+        activo INTEGER NOT NULL DEFAULT 1,
+        creado_en TEXT NOT NULL DEFAULT (datetime('now')),
+        ultimo_acceso TEXT
+      );
+
+      CREATE TABLE IF NOT EXISTS sys.auditoria (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        at TEXT NOT NULL DEFAULT (datetime('now')),
+        usuario TEXT,
+        rol TEXT,
+        vertical TEXT,
+        accion TEXT NOT NULL,
+        detalle TEXT,
+        ip TEXT
+      );
+
+      CREATE INDEX IF NOT EXISTS sys.idx_auditoria_at ON auditoria(at);
+      CREATE INDEX IF NOT EXISTS sys.idx_auditoria_usuario ON auditoria(usuario, at);
+    `);
 
     await db.exec(`
       CREATE TABLE IF NOT EXISTS quotes (

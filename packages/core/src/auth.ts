@@ -10,6 +10,8 @@
  * runtime Edge, donde `node:crypto` no existe. Web Crypto funciona en ambos.
  */
 
+import { esRol, type Rol } from "./roles";
+
 const encoder = new TextEncoder();
 
 export const SESSION_COOKIE = "voltac_session";
@@ -58,17 +60,91 @@ export function safeEqual(a: string, b: string): boolean {
   return diff === 0;
 }
 
+/**
+ * Almacenamiento de contraseñas.
+ *
+ * PBKDF2 con sal por usuario. Un SHA-256 a secas —lo que había cuando solo
+ * existía una cuenta en variables de entorno— se rompe con tablas precalculadas
+ * si alguien llega a leer la base: la misma contraseña produce siempre el mismo
+ * hash. La sal impide reutilizar ese trabajo entre usuarios y las iteraciones
+ * hacen que cada intento cueste tiempo real.
+ *
+ * Web Crypto y no `node:crypto` por la misma razón que el resto del archivo:
+ * funciona en los dos runtimes.
+ */
+const PBKDF2_ITERACIONES = 210_000;
+
+export async function hashPassword(password: string): Promise<string> {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const hash = await pbkdf2(password, salt, PBKDF2_ITERACIONES);
+  return `pbkdf2$${PBKDF2_ITERACIONES}$${base64url(salt)}$${base64url(hash)}`;
+}
+
+/**
+ * Comprueba una contraseña contra lo guardado.
+ *
+ * Acepta también el formato antiguo —SHA-256 hexadecimal sin sal— porque la
+ * cuenta del propietario se sembró desde `ADMIN_PASSWORD_HASH`. Al cambiar esa
+ * contraseña desde el panel, el registro pasa solo al formato nuevo.
+ */
+export async function verifyPassword(password: string, almacenado: string): Promise<boolean> {
+  if (!almacenado) return false;
+
+  if (almacenado.startsWith("pbkdf2$")) {
+    const [, iter, salt, esperado] = almacenado.split("$");
+    const iteraciones = Number(iter);
+    if (!Number.isFinite(iteraciones) || iteraciones < 1000 || !salt || !esperado) return false;
+    const hash = await pbkdf2(password, fromBase64url(salt), iteraciones);
+    return safeEqual(base64url(hash), esperado);
+  }
+
+  return safeEqual(await sha256Hex(password), almacenado);
+}
+
+/** `true` si el hash está en el formato antiguo y conviene renovarlo al entrar. */
+export function hashObsoleto(almacenado: string): boolean {
+  return !almacenado.startsWith("pbkdf2$");
+}
+
+async function pbkdf2(
+  password: string,
+  salt: Uint8Array,
+  iteraciones: number,
+): Promise<Uint8Array> {
+  const key = await crypto.subtle.importKey("raw", encoder.encode(password), "PBKDF2", false, [
+    "deriveBits",
+  ]);
+  const bits = await crypto.subtle.deriveBits(
+    { name: "PBKDF2", salt: salt as BufferSource, iterations: iteraciones, hash: "SHA-256" },
+    key,
+    256,
+  );
+  return new Uint8Array(bits);
+}
+
 export interface SessionPayload {
   /** Usuario autenticado */
   sub: string;
+  /**
+   * Rol, dentro del propio token firmado.
+   *
+   * Va aquí y no se consulta en base de datos en cada petición porque el proxy
+   * corre en el runtime Edge, donde no hay SQLite. La firma HMAC es lo que hace
+   * esto seguro: el navegador no puede cambiarse el rol sin invalidar el token.
+   *
+   * El precio es que un cambio de rol no surte efecto hasta el siguiente inicio
+   * de sesión —como mucho ocho horas—. Para revocar de inmediato está desactivar
+   * la cuenta, que sí se comprueba al entrar.
+   */
+  rol: Rol;
   /** Emisión y expiración, en segundos epoch */
   iat: number;
   exp: number;
 }
 
-export async function signSession(sub: string, secret: string): Promise<string> {
+export async function signSession(sub: string, rol: Rol, secret: string): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
-  const payload: SessionPayload = { sub, iat: now, exp: now + SESSION_TTL_SECONDS };
+  const payload: SessionPayload = { sub, rol, iat: now, exp: now + SESSION_TTL_SECONDS };
   const body = base64url(encoder.encode(JSON.stringify(payload)));
   const key = await hmacKey(secret);
   const sig = new Uint8Array(await crypto.subtle.sign("HMAC", key, encoder.encode(body)));
@@ -96,6 +172,10 @@ export async function verifySession(
 
     const payload = JSON.parse(new TextDecoder().decode(fromBase64url(body))) as SessionPayload;
     if (typeof payload.exp !== "number" || payload.exp < Math.floor(Date.now() / 1000)) return null;
+    // Sin rol reconocible no hay sesión. Las cookies emitidas antes de que
+    // existieran los roles caen aquí: obligan a entrar de nuevo, que es lo
+    // correcto, en lugar de heredar un permiso indefinido.
+    if (!esRol(payload.rol)) return null;
     return payload;
   } catch {
     return null;

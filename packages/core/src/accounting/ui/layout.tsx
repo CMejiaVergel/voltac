@@ -1,23 +1,25 @@
 "use client";
 
 import * as React from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { cn } from "../../utils";
+import { useSesion } from "../../sesion-cliente";
+import { ROL_ETIQUETA, type Rol } from "../../roles";
 import { LayoutDashboard, ArrowLeftRight, FileText, FileSignature, Users, Calendar, BarChart, Settings } from "lucide-react";
 
+/**
+ * El rol venia de `localStorage.getItem("voltac_admin_role") || "SuperAdmin"`.
+ * Era el mismo error que ya habiamos sacado del login: un dato que decide que
+ * se muestra, guardado donde el propio navegador puede reescribirlo desde la
+ * consola. Ahora llega del token de sesion firmado en el servidor.
+ */
 export default function AccountingLayout({ children }: { children: React.ReactNode }) {
-  const router = useRouter();
   const pathname = usePathname();
-  const [role, setRole] = React.useState<string | null>(null);
+  const sesion = useSesion();
+  const rol: Rol | null = sesion?.rol ?? null;
 
-  React.useEffect(() => {
-    // Mock role system based on PRD requirements
-    const currentRole = localStorage.getItem("voltac_admin_role") || "SuperAdmin";
-    setRole(currentRole);
-  }, []);
-
-  const navItems = [
+  const navItems: { label: string; href: string; icon: React.ReactNode; exact?: boolean; roles?: Rol[] }[] = [
     { label: "Resumen",   href: "/admin/accounting",                     icon: <LayoutDashboard size={18} />, exact: true },
     { label: "Dashboard", href: "/admin/accounting/dashboard",            icon: <BarChart size={18} /> },
     { label: "Ingresos & Egresos", href: "/admin/accounting/ingresos-egresos", icon: <ArrowLeftRight size={18} /> },
@@ -26,10 +28,10 @@ export default function AccountingLayout({ children }: { children: React.ReactNo
     { label: "Clientes & Proveedores", href: "/admin/accounting/clientes-proveedores", icon: <Users size={18} /> },
     { label: "Calendario", href: "/admin/accounting/calendario",          icon: <Calendar size={18} /> },
     { label: "Reportes",   href: "/admin/accounting/reportes",            icon: <BarChart size={18} /> },
-    { label: "Configuración", href: "/admin/accounting/configuracion",    icon: <Settings size={18} />, role: ["SuperAdmin"] },
+    { label: "Configuración", href: "/admin/accounting/configuracion",    icon: <Settings size={18} />, roles: ["propietario"] },
   ];
 
-  if (!role) return <div>Cargando módulo contable...</div>;
+  if (!rol) return <div>Cargando módulo contable...</div>;
 
   return (
     <div className="flex flex-col h-full space-y-6">
@@ -40,14 +42,14 @@ export default function AccountingLayout({ children }: { children: React.ReactNo
         </div>
         <div className="flex items-center gap-2 bg-secondary/10 px-4 py-2 rounded-full border border-border">
           <span className="text-xs font-semibold text-secondary uppercase tracking-wider">Rol:</span>
-          <span className="text-sm font-bold text-primary">{role}</span>
+          <span className="text-sm font-bold text-primary">{ROL_ETIQUETA[rol]}</span>
         </div>
       </div>
 
       <div className="border-b border-border pt-2">
         <nav className="flex gap-2 overflow-x-auto no-scrollbar pb-[1px]">
           {navItems.map((item) => {
-            if (item.role && !item.role.includes(role)) return null;
+            if (item.roles && !item.roles.includes(rol)) return null;
             const isActive = item.exact ? pathname === item.href : pathname.startsWith(item.href);
             
             return (

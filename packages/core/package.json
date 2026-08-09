@@ -16,6 +16,10 @@
     "./analytics/*": "./src/analytics/*.tsx",
     "./analytics/ingest": "./src/analytics/ingest.ts",
     "./analytics/queries": "./src/analytics/queries.ts",
-    "./proxy": "./src/proxy.ts"
+    "./proxy": "./src/proxy.ts",
+    "./roles": "./src/roles.ts",
+    "./usuarios": "./src/usuarios.ts",
+    "./sesion": "./src/sesion.ts",
+    "./sesion-cliente": "./src/sesion-cliente.tsx"
   }
 }
