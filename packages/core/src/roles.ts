@@ -87,6 +87,7 @@ export const ACCESO: readonly ReglaAcceso[] = [
   { prefijo: "/admin/accounting/configuracion", roles: ["propietario"] },
 
   { prefijo: "/api/accounting", roles: ["propietario", "contador"] },
+  { prefijo: "/api/usuarios", roles: ["propietario"] },
   // Subida de imagenes del blog. No tenia ninguna comprobacion: cualquiera
   // podia escribir archivos en el disco del servidor sin credenciales.
   { prefijo: "/api/upload-news-image", roles: ["propietario", "moderador"] },

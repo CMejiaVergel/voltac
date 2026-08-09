@@ -1,6 +1,6 @@
-import { getDB } from "./db";
-import { adminConfig, hashPassword, hashObsoleto, verifyPassword } from "./auth";
-import { esRol, type Rol } from "./roles";
+import { getDB } from "../db";
+import { adminConfig, hashPassword, hashObsoleto, verifyPassword } from "../auth";
+import { esRol, type Rol } from "../roles";
 
 /**
  * Cuentas del panel.

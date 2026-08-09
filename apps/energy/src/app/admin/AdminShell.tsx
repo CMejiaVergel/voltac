@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { LayoutDashboard, Users, FolderKanban, Settings, LogOut, BarChart3, Eye, Newspaper, Menu, X , Calculator} from "lucide-react";
+import { LayoutDashboard, Users, FolderKanban, Settings, LogOut, BarChart3, Eye, Newspaper, Menu, X , Calculator, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -36,6 +36,7 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
     { label: "Analytics", icon: <BarChart3 size={20}/>, href: "/admin/analytics" },
     { label: "Accounting", icon: <Calculator size={20}/>, href: "/admin/accounting" },
     { label: "Preview", icon: <Eye size={20}/>, href: "/admin/preview" },
+    { label: "Usuarios", icon: <ShieldCheck size={20}/>, href: "/admin/usuarios" },
     { label: "Configuración", icon: <Settings size={20}/>, href: "/admin/configuracion" },
   ].filter((item) => !sesion || puedeAcceder(sesion.rol, item.href));
 

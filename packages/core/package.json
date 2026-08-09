@@ -18,7 +18,9 @@
     "./analytics/queries": "./src/analytics/queries.ts",
     "./proxy": "./src/proxy.ts",
     "./roles": "./src/roles.ts",
-    "./usuarios": "./src/usuarios.ts",
+    "./usuarios": "./src/usuarios/index.ts",
+    "./usuarios/ui/*": "./src/usuarios/ui/*.tsx",
+    "./usuarios/api/*": "./src/usuarios/api/*.ts",
     "./sesion": "./src/sesion.ts",
     "./sesion-cliente": "./src/sesion-cliente.tsx"
   }
