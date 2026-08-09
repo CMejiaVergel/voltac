@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { X, Loader2, Plus, Trash2, AlertCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "../../../../utils";
 
 const TAX_RATES: Record<string, number> = { "1": 19, "2": 5, "3": 0 };
 const TAX_OPTIONS = [

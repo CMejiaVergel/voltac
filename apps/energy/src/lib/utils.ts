@@ -1,6 +1,3 @@
-import { type ClassValue, clsx } from "clsx"
-import { twMerge } from "tailwind-merge"
-
-export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
-}
+/* Puente al nucleo. `cn` la usan las dos aplicaciones y el modulo de
+   contabilidad compartido; vive una sola vez en @voltac/core. */
+export * from "@voltac/core/utils";

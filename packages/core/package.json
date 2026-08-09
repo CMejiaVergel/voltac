@@ -10,6 +10,8 @@
     "./auth": "./src/auth.ts",
     "./vertical": "./src/vertical.ts",
     "./paths": "./src/paths.ts",
-    "./db": "./src/db.ts"
+    "./db": "./src/db.ts",
+    "./accounting/*": "./src/accounting/*.tsx",
+    "./utils": "./src/utils.ts"
   }
 }

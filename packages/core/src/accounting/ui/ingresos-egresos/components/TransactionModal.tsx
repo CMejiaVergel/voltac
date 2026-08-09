@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { X, Loader2, TrendingUp, TrendingDown } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn } from "../../../../utils";
 
 interface TransactionFormData {
   type: "Ingreso" | "Egreso";

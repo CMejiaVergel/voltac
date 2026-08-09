@@ -25,7 +25,7 @@ import { SESSION_COOKIE, adminConfig, verifySession } from "@voltac/core/auth";
  */
 /* /api/leads queda fuera: se autentica con token Bearer para la ingesta
    externa de prospectos, que es codigo llamando a codigo, no una persona. */
-const PROTECTED_PREFIXES = ["/admin"];
+const PROTECTED_PREFIXES = ["/admin", "/api/accounting"];
 
 /** Única puerta de entrada; se sirve siempre. */
 const LOGIN_PATH = "/admin/login";
