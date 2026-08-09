@@ -1,5 +1,8 @@
 "use server";
 
+import { uploadsDir, uploadsUrl } from "@voltac/core/paths";
+import { currentVertical } from "@voltac/core/vertical";
+
 import { getDB } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 import sharp from "sharp";
@@ -10,7 +13,7 @@ import { writeFile, mkdir } from "fs/promises";
 async function compressAndSaveCover(file: File): Promise<string> {
   const bytes = await file.arrayBuffer();
   const inputBuffer = Buffer.from(bytes);
-  const uploadDir = join(process.cwd(), "uploads", "news");
+  const uploadDir = uploadsDir(currentVertical(), "news");
   await mkdir(uploadDir, { recursive: true });
 
   const uniqueName = Date.now() + "-cover-" + file.name.replace(/[^a-zA-Z0-9.-]/g, "_").replace(/\.(png|bmp|tiff?)$/i, ".jpg");
@@ -23,7 +26,7 @@ async function compressAndSaveCover(file: File): Promise<string> {
     .toBuffer();
 
   await writeFile(join(uploadDir, finalName), compressed);
-  return "/api/uploads/news/" + finalName;
+  return uploadsUrl("news", finalName);
 }
 
 // ── CRUD Actions ──

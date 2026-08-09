@@ -46,7 +46,15 @@ export function uploadsDir(vertical: string, ...segments: string[]): string {
   return join(dataDir(), "uploads", vertical, ...segments);
 }
 
-/** Ruta pública equivalente a `uploadsDir`, para guardar en base de datos. */
-export function uploadsUrl(vertical: string, ...segments: string[]): string {
-  return "/api/uploads/" + [vertical, ...segments].join("/");
+/**
+ * URL pública de un adjunto, tal como se guarda en base de datos.
+ *
+ * Deliberadamente NO lleva la vertical: el endpoint que sirve los archivos la
+ * añade a partir de la aplicación que atiende la petición. Así las direcciones
+ * que ya estaban guardadas —de antes de separar los adjuntos por marca— siguen
+ * resolviendo, y una misma URL nunca puede apuntar a los archivos de la otra
+ * marca por mucho que se manipule.
+ */
+export function uploadsUrl(...segments: string[]): string {
+  return "/api/uploads/" + segments.join("/");
 }

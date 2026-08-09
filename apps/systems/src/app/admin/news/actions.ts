@@ -26,7 +26,7 @@ async function compressAndSaveCover(file: File): Promise<string> {
     .toBuffer();
 
   await writeFile(join(uploadDir, finalName), compressed);
-  return uploadsUrl(currentVertical(), "news", finalName);
+  return uploadsUrl("news", finalName);
 }
 
 // ── CRUD Actions ──

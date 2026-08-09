@@ -1,3 +1,6 @@
+
+import { uploadsDir, uploadsUrl } from "@voltac/core/paths";
+import { currentVertical } from "@voltac/core/vertical";
 import { NextResponse } from 'next/server';
 import { getDB } from '@/lib/db';
 import { writeFile, mkdir } from 'fs/promises';
@@ -28,7 +31,7 @@ export async function POST(req: Request) {
       const buffer = Buffer.from(bytes);
 
       // Guardar fuera de public/ para que funcione en producción post-build
-      const uploadDir = join(process.cwd(), 'uploads', 'quotes');
+      const uploadDir = uploadsDir(currentVertical(), "quotes");
       await mkdir(uploadDir, { recursive: true });
       
       const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');

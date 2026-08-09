@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { join, resolve, sep } from 'path';
-import { dataDir } from '@voltac/core/paths';
+import { uploadsDir } from '@voltac/core/paths';
+import { currentVertical } from '@voltac/core/vertical';
 import { readFile } from 'fs/promises';
 
 /**
@@ -11,7 +12,9 @@ import { readFile } from 'fs/promises';
  * servidor —incluidos `.env` y la base de datos—. Se resuelve la ruta y se
  * comprueba que siga dentro de `uploads/` antes de abrir nada.
  */
-const UPLOADS_ROOT = resolve(dataDir(), 'uploads');
+/* La raiz se ancla en la vertical de esta aplicacion. Una peticion de Systems
+   no puede alcanzar los archivos de Energy ni manipulando la ruta. */
+const UPLOADS_ROOT = resolve(uploadsDir(currentVertical()));
 
 /** Solo se sirven imagenes; nunca se adivina el tipo a partir del contenido. */
 const CONTENT_TYPES: Record<string, string> = {

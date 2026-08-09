@@ -1,3 +1,6 @@
+
+import { uploadsDir, uploadsUrl } from "@voltac/core/paths";
+import { currentVertical } from "@voltac/core/vertical";
 import { NextRequest, NextResponse } from "next/server";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
@@ -14,7 +17,7 @@ export async function POST(req: NextRequest) {
 
     const bytes = await file.arrayBuffer();
     const inputBuffer = Buffer.from(bytes);
-    const uploadDir = join(process.cwd(), "uploads", "news");
+    const uploadDir = uploadsDir(currentVertical(), "news");
     await mkdir(uploadDir, { recursive: true });
 
     const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_").replace(/\.(png|bmp|tiff?)$/i, ".jpg");
@@ -29,7 +32,7 @@ export async function POST(req: NextRequest) {
 
     await writeFile(join(uploadDir, finalName), compressed);
 
-    return NextResponse.json({ url: "/api/uploads/news/" + finalName });
+    return NextResponse.json({ url: uploadsUrl("news", finalName) });
   } catch (error: any) {
     console.error("News image upload error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

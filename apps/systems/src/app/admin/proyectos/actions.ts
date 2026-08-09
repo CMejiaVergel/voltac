@@ -25,7 +25,7 @@ async function compressAndSaveImage(file: File): Promise<string> {
     .toBuffer();
 
   await writeFile(join(uploadDir, finalName), compressed);
-  return uploadsUrl(currentVertical(), "projects", finalName);
+  return uploadsUrl("projects", finalName);
 }
 
 export async function getProjects() {

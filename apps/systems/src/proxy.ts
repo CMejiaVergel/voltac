@@ -32,7 +32,10 @@ function securityHeaders(response: NextResponse, isAdmin: boolean): NextResponse
   const headers = response.headers;
 
   headers.set("X-Content-Type-Options", "nosniff");
-  headers.set("X-Frame-Options", "DENY");
+  /* SAMEORIGIN y no DENY: el modulo Preview del panel embebe el propio sitio
+     en un iframe para ver los cambios sin salir. DENY lo rompia. Sigue
+     bloqueando que un tercero nos embeba, que es de lo que protege. */
+  headers.set("X-Frame-Options", "SAMEORIGIN");
   headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
   headers.set(
     "Permissions-Policy",
