@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
+import { AnalyticsTracker } from "@voltac/core/analytics/Tracker";
 import { SERVICES, CONTACT } from "@/content/services";
 
 const inter = Inter({
@@ -150,6 +151,7 @@ export default function RootLayout({
           {children}
         </main>
         <Footer />
+        <AnalyticsTracker />
       </body>
     </html>
   );

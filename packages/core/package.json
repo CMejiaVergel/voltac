@@ -12,6 +12,9 @@
     "./paths": "./src/paths.ts",
     "./db": "./src/db.ts",
     "./accounting/*": "./src/accounting/*.tsx",
-    "./utils": "./src/utils.ts"
+    "./utils": "./src/utils.ts",
+    "./analytics/*": "./src/analytics/*.tsx",
+    "./analytics/ingest": "./src/analytics/ingest.ts",
+    "./analytics/queries": "./src/analytics/queries.ts"
   }
 }

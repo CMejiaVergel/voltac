@@ -5,7 +5,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Footer } from "@/components/layout/Footer";
 import { LegalModals } from "@/components/layout/LegalModals";
 import { CookieConsent } from "@/components/layout/CookieConsent";
-import { AnalyticsTracker } from "@/components/layout/AnalyticsTracker";
+import { AnalyticsTracker } from "@voltac/core/analytics/Tracker";
 
 const inter = Inter({
   variable: "--font-inter",

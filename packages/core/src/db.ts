@@ -113,6 +113,20 @@ export async function getDB() {
         fecha_publicacion DATETIME DEFAULT CURRENT_TIMESTAMP
       );
 
+      CREATE TABLE IF NOT EXISTS analytics_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        event TEXT NOT NULL,
+        path TEXT,
+        ipHash TEXT,
+        userAgent TEXT,
+        referrer TEXT,
+        duration INTEGER DEFAULT 0
+      );
+      CREATE INDEX IF NOT EXISTS idx_analytics_at ON analytics_events(at);
+      CREATE INDEX IF NOT EXISTS idx_analytics_event ON analytics_events(event);
+
+
       -- TABLAS MÓDULO ACCOUNTING
       CREATE TABLE IF NOT EXISTS conta.acc_accounts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
