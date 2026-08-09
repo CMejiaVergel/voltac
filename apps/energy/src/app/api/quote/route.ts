@@ -5,6 +5,7 @@ import { getDB } from "@/lib/db";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { revalidatePath } from "next/cache";
+import sharp from "sharp";
 
 /**
  * Alta de prospectos desde el formulario público de cotización.
@@ -104,13 +105,41 @@ export async function POST(req: Request) {
         const uploadDir = uploadsDir(currentVertical(), "quotes");
         await mkdir(uploadDir, { recursive: true });
 
-        const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
-        const uniqueName = `${Date.now()}-${safeName}`;
-        await writeFile(join(uploadDir, uniqueName), Buffer.from(await file.arrayBuffer()));
-        filePath = uploadsUrl("quotes", uniqueName);
+        const original = Buffer.from(await file.arrayBuffer());
+        const base = file.name
+          .replace(/\.[^.]+$/, "")
+          .replace(/[^a-zA-Z0-9.-]/g, "_")
+          .slice(0, 60);
+
+        let contenido: Buffer;
+        let nombre: string;
+
+        if (ext === "pdf") {
+          // El PDF se guarda tal cual: es el formato natural de una factura y
+          // no hay nada que optimizar sin arriesgarse a estropearla.
+          contenido = original;
+          nombre = `${Date.now()}-${base}.pdf`;
+        } else {
+          /*
+           * Toda imagen se normaliza a JPEG, igual que ya hacian proyectos y
+           * noticias. Esta era la unica subida que guardaba el archivo tal cual
+           * llegaba, y por eso un HEIC de iPhone acababa en disco con un
+           * formato que el visor no sabe servir: la factura quedaba registrada
+           * y no se podia abrir.
+           */
+          contenido = await sharp(original)
+            .rotate() // respeta la orientacion EXIF: fotos de movil salian giradas
+            .resize({ width: 1600, withoutEnlargement: true })
+            .jpeg({ quality: 82, progressive: true })
+            .toBuffer();
+          nombre = `${Date.now()}-${base}.jpg`;
+        }
+
+        await writeFile(join(uploadDir, nombre), contenido);
+        filePath = uploadsUrl("quotes", nombre);
       } catch (error) {
-        // Se registra y se sigue: el prospecto no se pierde por un disco lleno
-        // ni por un permiso mal puesto.
+        // Se registra y se sigue: el prospecto no se pierde por un disco lleno,
+        // un permiso mal puesto ni un formato que no se pudo convertir.
         console.error("[cotizacion] no se pudo guardar el adjunto:", error);
         fallaArchivo = "no_se_pudo_guardar";
       }

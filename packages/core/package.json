@@ -24,7 +24,8 @@
     "./usuarios/api/*": "./src/usuarios/api/*.ts",
     "./sesion": "./src/sesion.ts",
     "./sesion-cliente": "./src/sesion-cliente.tsx",
-    "./next-config": "./src/next-config.ts"
+    "./next-config": "./src/next-config.ts",
+    "./uploads/*": "./src/uploads/*.ts"
   },
   "//": "El nucleo no instala nada por su cuenta: usa las copias de la aplicacion que lo monta, y por eso todo va como peerDependencies. Antes no habia ninguna declarada y resolvia por hoisting; el dia que npm dejo de subir `next` a la raiz, el nucleo dejo de compilar sin haber cambiado una linea.",
   "peerDependencies": {
