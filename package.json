@@ -17,5 +17,11 @@
   },
   "overrides": {
     "postcss": ">=8.5.10"
+  },
+  "optionalDependencies": {
+    "lightningcss-linux-x64-gnu": "1.32.0",
+    "@tailwindcss/oxide-linux-x64-gnu": "4.2.2",
+    "@img/sharp-linux-x64": "0.34.5",
+    "@img/sharp-libvips-linux-x64": "1.2.3"
   }
 }
