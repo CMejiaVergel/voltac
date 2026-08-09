@@ -92,6 +92,20 @@ export async function getDB() {
     `);
 
     await db.exec(`
+      /*
+       * AVISO: esta definicion NO es la que tiene la tabla de Energy en
+       * produccion. IF NOT EXISTS no modifica una tabla que ya existe, y la de
+       * Energy nacio antes con otras columnas: modality, consumption, address,
+       * installType, location, objective, gridType, filePath. Ahi la columna
+       * email ademas admite nulos, y aqui es NOT NULL.
+       *
+       * O sea que hoy conviven dos formas de quotes, una por marca, bajo el
+       * mismo nombre. Mientras cada app solo toque la suya no molesta, pero es
+       * una trampa para cualquier consulta compartida, y la ingesta multicanal
+       * de prospectos se va a apoyar justo en esta tabla. Unificarlas exige
+       * migrar datos reales, asi que es una decision a tomar antes de empezar
+       * esa parte, no un cambio que se cuele en otro commit.
+       */
       CREATE TABLE IF NOT EXISTS quotes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         fullName TEXT NOT NULL,

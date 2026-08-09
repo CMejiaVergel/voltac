@@ -7,6 +7,46 @@ import * as z from "zod";
 import { FileUp, Calculator, Building2, CheckCircle2, ChevronRight, X, File } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { comprimirImagen, pesoLegible } from "@/lib/comprimir-imagen";
+
+/**
+ * Envío común de las tres modalidades.
+ *
+ * Antes cada una hacía `await fetch(...)` y abría el modal de éxito a
+ * continuación, sin mirar la respuesta. `fetch` solo rechaza cuando no hay red:
+ * un 500 del servidor se resuelve con normalidad. Así, la modalidad exprés
+ * llevaba fallando con cualquier factura de más de 10 MB —el tamaño corriente
+ * de una foto de móvil— mientras el visitante veía "recibido" y se iba
+ * tranquilo. Nadie podía notarlo desde fuera.
+ */
+async function enviarCotizacion(formData: FormData): Promise<{ aviso?: string }> {
+  const res = await fetch("/api/quote", { method: "POST", body: formData });
+
+  let cuerpo: { success?: boolean; error?: string; fileSaved?: boolean | null } = {};
+  try {
+    cuerpo = await res.json();
+  } catch {
+    /* respuesta ilegible: manda el código */
+  }
+
+  if (!res.ok || !cuerpo.success) {
+    throw new Error(
+      cuerpo.error ?? "No pudimos registrar su solicitud. Inténtelo de nuevo en un momento.",
+    );
+  }
+
+  // La solicitud quedó registrada pero la factura no se pudo conservar. No es
+  // un fallo del envío y no debe asustar a quien lo hizo, pero sí hay que
+  // decirlo para que no dé por enviada una factura que no llegó.
+  if (cuerpo.fileSaved === false) {
+    return {
+      aviso:
+        "Recibimos su solicitud, pero no pudimos conservar la factura. Le llamaremos para pedírsela.",
+    };
+  }
+
+  return {};
+}
 
 const expressSchema = z.object({
   fullName: z.string().min(3, "El nombre debe tener al menos 3 caracteres"),
@@ -40,6 +80,9 @@ export default function CotizarPage() {
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [successModal, setSuccessModal] = React.useState(false);
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null);
+  const [preparandoArchivo, setPreparandoArchivo] = React.useState(false);
+  const [errorEnvio, setErrorEnvio] = React.useState("");
+  const [avisoEnvio, setAvisoEnvio] = React.useState("");
 
   const expressForm = useForm<z.infer<typeof expressSchema>>({
     resolver: zodResolver(expressSchema),
@@ -56,32 +99,51 @@ export default function CotizarPage() {
     defaultValues: { terms: false }
   });
 
-  const onSubmitExpress = async (data: z.infer<typeof expressSchema>) => {
+  const enviar = async (
+    ruta: string,
+    formData: FormData,
+    alTerminar: () => void,
+  ) => {
     setIsSubmitting(true);
-    fetch('/api/analytics', { method: 'POST', body: JSON.stringify({event: 'click_cotizar', path: '/cotizar/express'}) }).catch(()=>{});
+    setErrorEnvio("");
+    setAvisoEnvio("");
+    fetch('/api/analytics', { method: 'POST', body: JSON.stringify({event: 'click_cotizar', path: ruta}) }).catch(()=>{});
+
+    try {
+      const { aviso } = await enviarCotizacion(formData);
+      alTerminar();
+      if (aviso) setAvisoEnvio(aviso);
+      setSuccessModal(true);
+    } catch (e) {
+      setErrorEnvio(
+        e instanceof Error
+          ? e.message
+          : "No pudimos enviar su solicitud. Revise su conexión e inténtelo de nuevo.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const onSubmitExpress = async (data: z.infer<typeof expressSchema>) => {
     const formData = new FormData();
     formData.append("modality", "express");
     formData.append("fullName", data.fullName);
     formData.append("phone", data.phone);
     formData.append("email", data.email);
-    
+
     // Usar el archivo controlado del estado en vez del input DOM
     if (selectedFile) {
       formData.append("file", selectedFile);
     }
 
-    try {
-      await fetch("/api/quote", { method: "POST", body: formData });
+    await enviar("/cotizar/express", formData, () => {
       expressForm.reset();
       setSelectedFile(null);
-      setSuccessModal(true);
-    } catch(e) { console.error(e); }
-    setIsSubmitting(false);
+    });
   };
 
   const onSubmitManual = async (data: z.infer<typeof manualSchema>) => {
-    setIsSubmitting(true);
-    fetch('/api/analytics', { method: 'POST', body: JSON.stringify({event: 'click_cotizar', path: '/cotizar/manual'}) }).catch(()=>{});
     const formData = new FormData();
     formData.append("modality", "manual");
     formData.append("fullName", data.fullName);
@@ -89,17 +151,10 @@ export default function CotizarPage() {
     formData.append("consumption", String(data.consumption));
     formData.append("address", data.address);
 
-    try {
-      await fetch("/api/quote", { method: "POST", body: formData });
-      manualForm.reset();
-      setSuccessModal(true);
-    } catch(e) { console.error(e); }
-    setIsSubmitting(false);
+    await enviar("/cotizar/manual", formData, () => manualForm.reset());
   };
 
   const onSubmitDetailed = async (data: z.infer<typeof detailedSchema>) => {
-    setIsSubmitting(true);
-    fetch('/api/analytics', { method: 'POST', body: JSON.stringify({event: 'click_cotizar', path: '/cotizar/detailed'}) }).catch(()=>{});
     const formData = new FormData();
     formData.append("modality", "detailed");
     formData.append("fullName", data.fullName);
@@ -110,12 +165,7 @@ export default function CotizarPage() {
     formData.append("gridType", data.gridType);
     if (data.message) formData.append("message", data.message);
 
-    try {
-      await fetch("/api/quote", { method: "POST", body: formData });
-      detailedForm.reset();
-      setSuccessModal(true);
-    } catch(e) { console.error(e); }
-    setIsSubmitting(false);
+    await enviar("/cotizar/detailed", formData, () => detailedForm.reset());
   };
 
   return (
@@ -161,7 +211,27 @@ export default function CotizarPage() {
           </div>
 
           <div className="p-8 md:p-12">
-            
+
+            {/* Un fallo de envio tiene que verse. Antes se tragaba en un
+                console.error y el visitante recibia el modal de exito igual. */}
+            {errorEnvio && (
+              <div className="max-w-2xl mx-auto mb-8 rounded-xl border border-destructive/30 bg-destructive/5 p-4">
+                <p className="text-sm font-semibold text-destructive">{errorEnvio}</p>
+                <p className="text-xs text-secondary/70 mt-2">
+                  Si vuelve a fallar, escríbanos por{" "}
+                  <a
+                    href="https://wa.me/573052461088"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="underline font-medium"
+                  >
+                    WhatsApp
+                  </a>{" "}
+                  y atendemos su solicitud de una vez.
+                </p>
+              </div>
+            )}
+
             {/* TAB EXPRESS */}
             {activeTab === "express" && (
               <form onSubmit={expressForm.handleSubmit(onSubmitExpress)} className="space-y-6 max-w-2xl mx-auto">
@@ -195,21 +265,34 @@ export default function CotizarPage() {
                        <label className="cursor-pointer flex flex-col items-center justify-center w-full h-32 border-2 border-border border-dashed rounded-xl bg-muted/30 hover:bg-muted/50 hover:border-primary/50 transition-colors">
                          <FileUp className="w-8 h-8 text-secondary/40 mb-2" />
                          <span className="text-sm font-medium text-secondary/60">Haz clic para buscar o arrastra el archivo aquí</span>
-                         <span className="text-xs text-secondary/40 mt-1">Máximo 20MB · PDF, JPG, PNG</span>
-                         <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,image/*,application/pdf" onChange={(e) => {
+                         <span className="text-xs text-secondary/40 mt-1">PDF, JPG o PNG · las fotos se optimizan solas</span>
+                         <input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png,image/*,application/pdf" onChange={async (e) => {
                             const f = e.target.files?.[0];
-                            if (f) setSelectedFile(f);
+                            if (!f) return;
+                            /* Se reduce aqui, en el navegador. Una foto de factura de
+                               un movil actual pesa entre 8 y 15 MB y a ese tamano el
+                               servidor recibia el cuerpo cortado y perdia el prospecto.
+                               A 1600 px la factura se lee igual y pesa una fraccion. */
+                            setPreparandoArchivo(true);
+                            try {
+                              setSelectedFile(await comprimirImagen(f));
+                            } finally {
+                              setPreparandoArchivo(false);
+                            }
                          }} />
                        </label>
                     </div>
-                    {selectedFile && (
+                    {preparandoArchivo && (
+                      <p className="text-xs text-secondary/50 mt-2">Optimizando el archivo…</p>
+                    )}
+                    {selectedFile && !preparandoArchivo && (
                       <div className="flex items-center gap-3 bg-primary/5 border border-primary/20 rounded-xl p-3 mt-2 animate-in slide-in-from-top-2">
                          <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                            <File size={20} className="text-primary" />
                          </div>
                          <div className="flex-1 min-w-0">
                            <p className="text-sm font-bold text-secondary truncate">{selectedFile.name}</p>
-                           <p className="text-xs text-secondary/50">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+                           <p className="text-xs text-secondary/50">{pesoLegible(selectedFile.size)}</p>
                          </div>
                          <button type="button" onClick={() => setSelectedFile(null)} className="w-8 h-8 rounded-full bg-red-100 hover:bg-red-200 text-red-600 flex items-center justify-center transition-colors shrink-0">
                            <X size={14}/>
@@ -376,9 +459,14 @@ export default function CotizarPage() {
               <CheckCircle2 size={48} />
             </div>
             <h2 className="text-3xl font-black text-secondary tracking-tight mb-4">¡Solicitud Exitosa!</h2>
-            <p className="text-secondary/70 font-light text-lg mb-10 leading-relaxed">
+            <p className="text-secondary/70 font-light text-lg mb-6 leading-relaxed">
               Hemos recibido tu información y la almacenamos de manera segura. Un ingeniero experto de <strong>Voltac Energy</strong> estará contactándote muy pronto para enviarte la propuesta.
             </p>
+            {avisoEnvio && (
+              <p className="text-sm text-secondary/80 bg-amber-50 border border-amber-200 rounded-xl p-4 mb-8 text-left">
+                {avisoEnvio}
+              </p>
+            )}
             <Button onClick={() => setSuccessModal(false)} variant="accent" size="lg" className="w-full h-14 font-bold text-secondary text-base hover:scale-105 transition-transform">
               Entendido, gracias
             </Button>
