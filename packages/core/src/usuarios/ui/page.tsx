@@ -267,8 +267,8 @@ export default function UsuariosPage() {
       </div>
 
       <p className="text-xs text-muted-foreground">
-        Un cambio de rol surte efecto en el siguiente inicio de sesión, como mucho ocho horas
-        después. Para retirar el acceso de inmediato, desactive la cuenta.
+        Desactivar una cuenta o cambiarle el rol corta su sesión en el acto, aunque la persona
+        tenga el panel abierto. Al reactivarla, vuelve a entrar con normalidad.
       </p>
     </div>
   );

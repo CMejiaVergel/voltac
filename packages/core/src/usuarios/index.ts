@@ -189,9 +189,10 @@ export async function cambiarPassword(id: number, password: string): Promise<boo
 /**
  * Activa o desactiva una cuenta.
  *
- * Desactivar es la vía para revocar acceso de inmediato: el rol viaja dentro del
- * token firmado y no se relee en cada petición, pero esto sí se comprueba al
- * entrar. Nunca deja a la empresa sin propietarios activos.
+ * Surte efecto en la siguiente petición: el proxy contrasta cada acceso a una
+ * ruta protegida contra este campo, así que una sesión abierta se corta sola
+ * sin esperar a que caduque la cookie. Nunca deja a la empresa sin
+ * propietarios activos.
  */
 export async function cambiarEstado(id: number, activo: boolean): Promise<boolean> {
   const db = await getDB();
