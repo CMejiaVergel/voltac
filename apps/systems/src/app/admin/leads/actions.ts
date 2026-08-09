@@ -2,24 +2,7 @@
 
 import { getDB } from "@/lib/db";
 import { revalidatePath } from "next/cache";
-import { sesionActual } from "@voltac/core/sesion";
-import { confirmarPassword } from "@voltac/core/usuarios";
-
-/**
- * Segunda confirmacion para las acciones destructivas.
- *
- * Empezo comparando contra una cadena escrita en el codigo —publicada, por
- * tanto, en el repositorio—, y paso despues al hash del entorno. Ahora se
- * comprueba contra la cuenta de quien esta actuando: si el propietario cambia
- * su contrasena desde el panel, esta confirmacion la sigue, y la auditoria
- * puede decir quien autorizo el borrado en lugar de "alguien con la clave".
- */
-async function confirmarClaveAdmin(pass: string): Promise<{ ok: boolean; error?: string }> {
-  const sesion = await sesionActual();
-  if (!sesion) return { ok: false, error: "La sesion no es valida. Vuelva a entrar." };
-  const ok = await confirmarPassword(sesion.sub, pass ?? "");
-  return ok ? { ok: true } : { ok: false, error: "Contrasena incorrecta." };
-}
+import { confirmarAccionSensible } from "@voltac/core/confirmar";
 
 export async function updateLeadStage(id: number, stage: string, status: string, author: string = "Admin") {
   const db = await getDB();
@@ -115,8 +98,8 @@ export async function createManualLead(data: any, author: string = "Admin") {
 }
 
 export async function deleteLeads(ids: number[], pass: string) {
-  const check = await confirmarClaveAdmin(pass);
-  if (!check.ok) return { success: false, error: check.error };
+  const confirmacion = await confirmarAccionSensible(pass, "leads_archivados", `${ids.length} lead(s)`);
+  if (!confirmacion.ok) return { success: false, error: confirmacion.error };
   
   const db = await getDB();
   const placeholders = ids.map(() => '?').join(',');
@@ -141,8 +124,8 @@ export async function restoreLeads(ids: number[]) {
 }
 
 export async function permanentDeleteLeads(ids: number[], pass: string) {
-  const check = await confirmarClaveAdmin(pass);
-  if (!check.ok) return { success: false, error: check.error };
+  const confirmacion = await confirmarAccionSensible(pass, "leads_eliminados_definitivamente", `${ids.length} lead(s)`);
+  if (!confirmacion.ok) return { success: false, error: confirmacion.error };
   
   const db = await getDB();
   const placeholders = ids.map(() => '?').join(',');

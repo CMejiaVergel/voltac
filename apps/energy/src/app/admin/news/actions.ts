@@ -1,5 +1,7 @@
 "use server";
 
+
+import { confirmarAccionSensible } from "@voltac/core/confirmar";
 import { uploadsDir, uploadsUrl } from "@voltac/core/paths";
 import { currentVertical } from "@voltac/core/vertical";
 
@@ -140,7 +142,8 @@ export async function bulkToggleNewsStatus(ids: number[], publish: boolean) {
 }
 
 export async function deleteNewsEntry(id: number, pass: string) {
-  if (pass !== "voltacenergy2026") return { success: false, error: "Contraseña incorrecta." };
+  const confirmacion = await confirmarAccionSensible(pass, "noticia_eliminada", `noticia ${id}`);
+  if (!confirmacion.ok) return { success: false, error: confirmacion.error };
   const db = await getDB();
   await db.run("DELETE FROM news_entries WHERE id = ?", [id]);
   revalidatePath("/admin/news");
@@ -150,7 +153,8 @@ export async function deleteNewsEntry(id: number, pass: string) {
 }
 
 export async function bulkDeleteNewsEntries(ids: number[], pass: string) {
-  if (pass !== "voltacenergy2026") return { success: false, error: "Contraseña incorrecta." };
+  const confirmacion = await confirmarAccionSensible(pass, "noticias_eliminadas", `${ids.length} noticia(s)`);
+  if (!confirmacion.ok) return { success: false, error: confirmacion.error };
   const db = await getDB();
   const placeholders = ids.map(() => '?').join(',');
   await db.run(`DELETE FROM news_entries WHERE id IN (${placeholders})`, [...ids]);

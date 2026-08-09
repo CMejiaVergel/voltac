@@ -1,5 +1,7 @@
 "use server";
 
+
+import { confirmarAccionSensible } from "@voltac/core/confirmar";
 import { getDB } from "@/lib/db";
 import { revalidatePath } from "next/cache";
 
@@ -97,9 +99,8 @@ export async function createManualLead(data: any, author: string = "Admin") {
 }
 
 export async function deleteLeads(ids: number[], pass: string) {
-  if (pass !== "voltacenergy2026") {
-    return { success: false, error: "Contraseña administrativa incorrecta." };
-  }
+  const confirmacion = await confirmarAccionSensible(pass, "leads_archivados", `${ids.length} lead(s)`);
+  if (!confirmacion.ok) return { success: false, error: confirmacion.error };
   
   const db = await getDB();
   const placeholders = ids.map(() => '?').join(',');
@@ -124,9 +125,8 @@ export async function restoreLeads(ids: number[]) {
 }
 
 export async function permanentDeleteLeads(ids: number[], pass: string) {
-  if (pass !== "voltacenergy2026") {
-    return { success: false, error: "Contraseña administrativa incorrecta." };
-  }
+  const confirmacion = await confirmarAccionSensible(pass, "leads_eliminados_definitivamente", `${ids.length} lead(s)`);
+  if (!confirmacion.ok) return { success: false, error: confirmacion.error };
   
   const db = await getDB();
   const placeholders = ids.map(() => '?').join(',');

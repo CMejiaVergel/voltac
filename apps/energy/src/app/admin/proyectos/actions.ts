@@ -1,5 +1,7 @@
 "use server";
 
+
+import { confirmarAccionSensible } from "@voltac/core/confirmar";
 import { uploadsDir, uploadsUrl } from "@voltac/core/paths";
 import { currentVertical } from "@voltac/core/vertical";
 
@@ -65,7 +67,8 @@ export async function bulkPublishProjects(ids: number[], publish: boolean) {
 }
 
 export async function deleteProject(id: number, pass: string) {
-  if (pass !== "voltacenergy2026") return { success: false, error: "Contraseña incorrecta." };
+  const confirmacion = await confirmarAccionSensible(pass, "proyecto_eliminado", `proyecto ${id}`);
+  if (!confirmacion.ok) return { success: false, error: confirmacion.error };
   const db = await getDB();
   await db.run("DELETE FROM projects WHERE id = ?", [id]);
   revalidatePath("/admin/proyectos");
@@ -75,7 +78,8 @@ export async function deleteProject(id: number, pass: string) {
 }
 
 export async function bulkDeleteProjects(ids: number[], pass: string) {
-  if (pass !== "voltacenergy2026") return { success: false, error: "Contraseña incorrecta." };
+  const confirmacion = await confirmarAccionSensible(pass, "proyectos_eliminados", `${ids.length} proyecto(s)`);
+  if (!confirmacion.ok) return { success: false, error: confirmacion.error };
   const db = await getDB();
   const placeholders = ids.map(() => '?').join(',');
   await db.run(`DELETE FROM projects WHERE id IN (${placeholders})`, [...ids]);
