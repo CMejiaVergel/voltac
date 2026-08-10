@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { createManualLead } from "@/app/admin/leads/actions";
 import { TextReveal } from "@/components/motion/TextReveal";
 import { Reveal, RevealGroup, RevealItem, EASE } from "@/components/motion/Reveal";
-import { SERVICES, PROCESS_STEPS, CONTACT } from "@/content/services";
+import { SERVICES, PROCESS_STEPS, CONTACT, BUDGET_RANGES } from "@/content/services";
 
 export default function CotizarPage() {
   const [copiedData, setCopiedData] = React.useState(false);
@@ -213,11 +213,9 @@ export default function CotizarPage() {
                         <label htmlFor="budget" className="text-sm font-semibold uppercase tracking-wider text-secondary/80">Inversión que tiene considerada</label>
                         <select id="budget" name="budget" defaultValue="" className="w-full bg-muted border border-border/50 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-primary transition-all text-secondary" required>
                           <option value="" disabled>Seleccione un rango aproximado</option>
-                          <option value="1k-5k">$1,000 - $5,000 USD</option>
-                          <option value="5k-15k">$5,000 - $15,000 USD</option>
-                          <option value="15k-50k">$15,000 - $50,000 USD</option>
-                          <option value="50k+">Más de $50,000 USD</option>
-                          <option value="por-definir">Todavía no lo tengo definido</option>
+                          {BUDGET_RANGES.map((r) => (
+                            <option key={r.value} value={r.value}>{r.label}</option>
+                          ))}
                         </select>
                         <p className="text-xs text-secondary/50 font-light">
                           Nos sirve para proponerle un alcance realista. No compromete nada.

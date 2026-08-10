@@ -301,6 +301,48 @@ export const PACKAGES: StarterPackage[] = [
   },
 ];
 
+/**
+ * Rangos de inversión del formulario de contacto.
+ *
+ * En pesos colombianos: la conversación comercial ocurre en pesos y pedirle al
+ * cliente que traduzca su presupuesto a dólares le añade un cálculo mental antes
+ * de contestar una pregunta que ya le incomoda.
+ *
+ * El `value` es lo que se guarda en `quotes.budget` y viaja al asistente de
+ * WhatsApp; el `label` es solo presentación. Se separan porque el valor
+ * almacenado es lo que permite filtrar y reportar por tramo, y no debería
+ * cambiar cada vez que se reescriba el texto de la opción.
+ *
+ * Los tramos no son parejos a propósito: por debajo de tres millones el alcance
+ * posible es muy distinto, y por encima de diez la cifra deja de ser un rango y
+ * pasa a ser una conversación.
+ */
+export interface BudgetRange {
+  value: string;
+  label: string;
+}
+
+export const BUDGET_RANGES: BudgetRange[] = [
+  { value: "1-3M", label: "$1 a $3 millones COP" },
+  { value: "3-6M", label: "$3 a $6 millones COP" },
+  { value: "6-10M", label: "$6 a $10 millones COP" },
+  { value: "10M+", label: "Más de $10 millones COP" },
+  { value: "por-definir", label: "Todavía no lo tengo definido" },
+];
+
+/**
+ * Texto legible de un presupuesto guardado.
+ *
+ * Devuelve el valor crudo cuando no lo reconoce, que es lo que pasa con los
+ * leads anteriores al cambio a pesos (`1k-5k`, `50k+`…). Traducirlos sería
+ * mentir sobre lo que esa persona marcó: eligió un rango en dólares y el
+ * histórico debe seguir diciendo eso.
+ */
+export function budgetLabel(value?: string | null): string {
+  if (!value) return "";
+  return BUDGET_RANGES.find((r) => r.value === value)?.label ?? value;
+}
+
 /** "De la conversación al resultado" */
 export const PROCESS_STEPS = [
   {

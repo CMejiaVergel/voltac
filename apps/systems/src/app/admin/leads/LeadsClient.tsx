@@ -6,8 +6,16 @@ import { Button } from "@/components/ui/button";
 import LeadDetailModal from "./LeadDetailModal";
 import LeadCreateModal from "./LeadCreateModal";
 import { updateLeadStage, deleteLeads } from "./actions";
+import { budgetLabel } from "@/content/services";
 
-export default function LeadsClient({ initialLeads }: { initialLeads: any[] }) {
+export default function LeadsClient({
+  initialLeads,
+  whatsappActivo = false,
+}: {
+  initialLeads: any[];
+  /** Si esta línea de negocio tiene asistente de WhatsApp configurado. */
+  whatsappActivo?: boolean;
+}) {
   const [leads, setLeads] = React.useState(initialLeads);
   const [search, setSearch] = React.useState("");
   
@@ -102,7 +110,7 @@ export default function LeadsClient({ initialLeads }: { initialLeads: any[] }) {
       `"${l.company || ''}"`,
       l.phone,
       l.email || "",
-      `"${l.budget || ''}"`,
+      `"${budgetLabel(l.budget)}"`,
       l.stage,
       l.status,
       l.priority,
@@ -300,7 +308,7 @@ export default function LeadsClient({ initialLeads }: { initialLeads: any[] }) {
                     <td className="px-6 py-4">
                        <div className="flex flex-col items-start gap-1">
                           <span className="text-xs font-bold text-secondary truncate max-w-[150px]">{lead.company || "Independiente"}</span>
-                          <span className="text-[10px] uppercase font-semibold text-secondary/60 bg-muted px-2 py-0.5 rounded">{lead.budget || "Sin estimar"}</span>
+                          <span className="text-[10px] uppercase font-semibold text-secondary/60 bg-muted px-2 py-0.5 rounded">{budgetLabel(lead.budget) || "Sin estimar"}</span>
                        </div>
                     </td>
 
@@ -331,7 +339,7 @@ export default function LeadsClient({ initialLeads }: { initialLeads: any[] }) {
         </div>
       </div>
 
-      {activeLead && <LeadDetailModal lead={activeLead} onClose={() => setActiveLead(null)} />}
+      {activeLead && <LeadDetailModal lead={activeLead} whatsappActivo={whatsappActivo} onClose={() => setActiveLead(null)} />}
       {isCreateOpen && <LeadCreateModal onClose={() => setIsCreateOpen(false)} />}
       
       {/* Delete Modal */}

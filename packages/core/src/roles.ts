@@ -75,6 +75,10 @@ export interface ReglaAcceso {
  *  - `/api/leads` se autentica con token Bearer para la ingesta externa de
  *    prospectos: es código llamando a código, no una persona con sesión. Es la
  *    base de la ingesta multicanal.
+ *  - `/api/whatsapp/eventos` lo llama el asistente de WhatsApp para contar qué
+ *    pasó en cada conversación. Se autentica con la misma tabla `api_keys` que
+ *    la ingesta: llega cuando el prospecto escribe, que puede ser de madrugada
+ *    y sin nadie con sesión abierta.
  *  - `/api/analytics` recibe eventos del sitio público; valida el tipo de
  *    evento y no expone lectura.
  *  - `/api/quote` es el formulario público de cotización.

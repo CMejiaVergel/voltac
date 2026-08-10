@@ -4,8 +4,18 @@ import * as React from "react";
 import { X, Send, Save, FileText, Tag, Clock, User, MessageCircle, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { updateLead, addNote } from "./actions";
+import { budgetLabel } from "@/content/services";
+import WhatsAppContacto from "./WhatsAppContacto";
 
-export default function LeadDetailModal({ lead, onClose }: { lead: any; onClose: () => void }) {
+export default function LeadDetailModal({
+  lead,
+  onClose,
+  whatsappActivo = false,
+}: {
+  lead: any;
+  onClose: () => void;
+  whatsappActivo?: boolean;
+}) {
   const [isEditing, setIsEditing] = React.useState(false);
   const [formData, setFormData] = React.useState(lead);
   const [newNote, setNewNote] = React.useState("");
@@ -124,7 +134,7 @@ export default function LeadDetailModal({ lead, onClose }: { lead: any; onClose:
                   <div><label className="text-xs font-bold text-secondary/50 uppercase block mb-1">Celular / WhatsApp</label><span className="font-semibold text-primary">{lead.phone}</span></div>
                   <div><label className="text-xs font-bold text-secondary/50 uppercase block mb-1">Email</label><span className="font-semibold">{lead.email || '—'}</span></div>
                   {lead.company && <div className="col-span-2"><label className="text-xs font-bold text-secondary/50 uppercase block mb-1">Empresa</label><span className="font-semibold">{lead.company}</span></div>}
-                  {lead.budget && <div><label className="text-xs font-bold text-secondary/50 uppercase block mb-1">Presupuesto</label><span className="font-semibold">{lead.budget}</span></div>}
+                  {lead.budget && <div><label className="text-xs font-bold text-secondary/50 uppercase block mb-1">Presupuesto</label><span className="font-semibold">{budgetLabel(lead.budget)}</span></div>}
                   {lead.requirement && <div className="col-span-2"><label className="text-xs font-bold text-secondary/50 uppercase block mb-1">Requerimiento B2B</label><span className="font-semibold text-secondary/70 italic p-3 bg-muted rounded-xl block mt-1">{lead.requirement}</span></div>}
                   {lead.message && <div className="col-span-2"><label className="text-xs font-bold text-secondary/50 uppercase block mb-1">Mensaje Extra</label><span className="font-semibold">{lead.message}</span></div>}
                   
@@ -137,6 +147,8 @@ export default function LeadDetailModal({ lead, onClose }: { lead: any; onClose:
                   )}
                </div>
             </div>
+
+            {whatsappActivo && <WhatsAppContacto lead={lead} />}
 
           </div>
 
