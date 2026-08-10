@@ -329,3 +329,86 @@ export function restaurarAjustes(): Promise<{ ajustes: Ajustes }> {
 export function verPrompt(): Promise<{ prompt: string; herramientas: string[]; caracteres: number }> {
   return pedir("/crm/prompt", { espera: ESPERA_MS.modelo });
 }
+
+// --- Agenda, métricas y catálogo --------------------------------------------
+
+/**
+ * Un evento del calendario, ya normalizado.
+ *
+ * El tipo es deliberadamente agnóstico del proveedor. Hoy todo viene de Google,
+ * pero el día que entren Outlook y Teams la pantalla no cambia: `origen` dice de
+ * dónde salió cada uno y el resto de la forma es la misma.
+ */
+export interface EventoAgenda {
+  id: string;
+  titulo: string;
+  inicio: string;
+  fin: string;
+  todoElDia: boolean;
+  descripcion?: string;
+  ubicacion?: string;
+  enlace?: string;
+  asistentes: string[];
+  origen: "google";
+  /** Lo creó el asistente, no una persona. */
+  delAsistente: boolean;
+}
+
+export interface Agenda {
+  zonaHoraria: string;
+  calendario: string;
+  eventos: EventoAgenda[];
+}
+
+export function traerAgenda(dias = 14): Promise<Agenda> {
+  return pedir(`/crm/agenda?dias=${dias}`, { espera: ESPERA_MS.modelo });
+}
+
+export interface Metricas {
+  desde: number;
+  hasta: number;
+  turnos: number;
+  conversaciones: number;
+  tokens: number;
+  costoUsd: number;
+  costoPorTurno: number;
+  msPromedio: number;
+  msMaximo: number;
+  errores: number;
+  escalamientos: number;
+  citasAgendadas: number;
+  leadsContactados: number;
+  respuestasHumanas: number;
+  herramientas: { nombre: string; veces: number }[];
+  porDia: { dia: string; turnos: number; costoUsd: number }[];
+  masCaras: { conversationId: string; turnos: number; costoUsd: number }[];
+  saldoUsd?: number;
+}
+
+export function traerMetricas(dias = 30): Promise<Metricas> {
+  return pedir(`/crm/metricas?dias=${dias}`, { espera: ESPERA_MS.modelo });
+}
+
+export interface ModeloDisponible {
+  id: string;
+  nombre: string;
+  /** USD por millón de tokens. `null` cuando el precio es variable. */
+  entradaPorMillon: number | null;
+  salidaPorMillon: number | null;
+  contexto: number;
+  gratis: boolean;
+}
+
+export function traerModelos(): Promise<{ modelos: ModeloDisponible[] }> {
+  return pedir("/crm/modelos", { espera: ESPERA_MS.modelo });
+}
+
+/** Borra una conversación entera. No se puede deshacer. */
+export function limpiarConversacion(id: string): Promise<{
+  turnos: number;
+  eventos: number;
+  ficha: boolean;
+  leadReiniciado?: string;
+}> {
+  return pedir(`/crm/conversaciones/${encodeURIComponent(id)}/limpiar`, { metodo: "POST" });
+}

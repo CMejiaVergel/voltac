@@ -16,6 +16,7 @@ import {
   ExternalLink,
   Bell,
   BellOff,
+  Eraser,
 } from "lucide-react";
 import { cn } from "../../utils";
 import { IconoCanal } from "./iconos";
@@ -26,6 +27,7 @@ import {
   traerConversacion,
   traerConversaciones,
 } from "../acciones-bandeja";
+import { limpiarConversacionConfirmada } from "../acciones-avanzadas";
 import type { ConversacionDetalle, ConversacionResumen } from "../cliente";
 
 /**
@@ -97,6 +99,9 @@ export default function Bandeja({ disponible }: { disponible: boolean }) {
   const [texto, setTexto] = React.useState("");
   const [enviando, setEnviando] = React.useState(false);
   const [avisos, setAvisos] = React.useState(false);
+  const [borrando, setBorrando] = React.useState(false);
+  const [clave, setClave] = React.useState("");
+  const [borrandoAhora, setBorrandoAhora] = React.useState(false);
 
   const finHilo = React.useRef<HTMLDivElement | null>(null);
   // Arranca en "ahora": al abrir la bandeja no interesa que suenen los mensajes
@@ -118,6 +123,8 @@ export default function Bandeja({ disponible }: { disponible: boolean }) {
   const abrir = React.useCallback(async (id: string) => {
     setActiva(id);
     setTexto("");
+    setBorrando(false);
+    setClave("");
     const r = await traerConversacion(id);
     if (r.ok) setDetalle(r.datos ?? null);
     else setError(r.error ?? "No se pudo abrir la conversación.");
@@ -198,6 +205,30 @@ export default function Bandeja({ disponible }: { disponible: boolean }) {
     setTexto("");
     setError("");
     await abrir(activa);
+    void recargarLista();
+  };
+
+  /**
+   * Borra la conversación entera.
+   *
+   * Pide la contraseña por lo mismo que borrar un lead: no protege contra quien
+   * ya entró, protege contra el descuido. Un clic aquí borra la conversación de
+   * un cliente real y no hay forma de recuperarla.
+   */
+  const limpiar = async () => {
+    if (!activa) return;
+    setBorrandoAhora(true);
+    setError("");
+    const r = await limpiarConversacionConfirmada(activa, clave, detalle?.nombre ?? activa);
+    setBorrandoAhora(false);
+    if (!r.ok) {
+      setError(r.error ?? "No se pudo borrar.");
+      return;
+    }
+    setClave("");
+    setBorrando(false);
+    setActiva(null);
+    setDetalle(null);
     void recargarLista();
   };
 
@@ -358,7 +389,57 @@ export default function Bandeja({ disponible }: { disponible: boolean }) {
                   <Bot size={14} /> Lo lleva el asistente
                 </span>
               )}
+              <button
+                onClick={() => setBorrando((v) => !v)}
+                title="Borrar la conversación por completo"
+                className="p-2 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+              >
+                <Eraser size={16} />
+              </button>
             </header>
+
+            {borrando && (
+              <div className="bg-red-50 border-b border-red-200 p-4 space-y-3">
+                <div className="flex gap-2 items-start">
+                  <AlertTriangle size={16} className="text-red-600 shrink-0 mt-0.5" />
+                  <div className="text-sm text-red-800">
+                    <p className="font-bold">Borrar toda la conversación con {detalle.nombre ?? detalle.waId}</p>
+                    <p className="text-xs mt-1">
+                      Se van los {detalle.mensajes.length} mensajes, la ficha con sus datos y su
+                      rastro en la actividad. Si viene de un lead, vuelve a la cola como si nunca
+                      se le hubiera escrito. <strong>No se puede deshacer.</strong>
+                    </p>
+                    <p className="text-xs mt-1">
+                      Los mensajes seguirán en el WhatsApp de la persona: esto borra lo que sabe
+                      el asistente, no lo que ella ya recibió.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="password"
+                    value={clave}
+                    onChange={(e) => setClave(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && void limpiar()}
+                    placeholder="Tu contraseña del panel"
+                    className="flex-1 rounded-lg border border-red-300 bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-red-200"
+                  />
+                  <button
+                    onClick={() => void limpiar()}
+                    disabled={borrandoAhora || !clave}
+                    className="px-4 py-2 rounded-lg bg-red-600 text-white text-sm font-semibold disabled:opacity-40 hover:bg-red-700 transition-colors"
+                  >
+                    {borrandoAhora ? "Borrando…" : "Borrar"}
+                  </button>
+                  <button
+                    onClick={() => { setBorrando(false); setClave(""); }}
+                    className="px-4 py-2 rounded-lg border border-border text-sm"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            )}
 
             {detalle.estado === "paused" && (
               <p className="text-xs bg-amber-50 border-b border-amber-200 text-amber-800 px-4 py-2">

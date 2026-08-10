@@ -19,7 +19,8 @@ import {
   guardarConfiguracion,
   volverAValoresDeOrigen,
 } from "../acciones-config";
-import type { Ajustes, EjemploTono } from "../cliente";
+import { cargarModelos } from "../acciones-avanzadas";
+import type { Ajustes, EjemploTono, ModeloDisponible } from "../cliente";
 
 /**
  * Configuración del comportamiento del asistente.
@@ -36,7 +37,13 @@ import type { Ajustes, EjemploTono } from "../cliente";
  * nadie mantiene y en un asistente roto por un clic distraído.
  */
 
-const CAMPOS_SENSIBLES = new Set(["temperatura", "maxToques", "esperaDias"]);
+/** USD por millón de tokens, en corto. `null` = precio variable. */
+function precioCorto(v: number | null): string {
+  if (v === null) return "precio variable";
+  if (v === 0) return "gratis";
+  if (v < 1) return `$${v.toFixed(2)}`;
+  return `$${v.toFixed(v < 10 ? 1 : 0)}`;
+}
 
 function Etiqueta({
   children,
@@ -106,6 +113,7 @@ export default function Configuracion({ disponible }: { disponible: boolean }) {
   const [aviso, setAviso] = React.useState("");
   const [guardando, setGuardando] = React.useState(false);
   const [prompt, setPrompt] = React.useState<string | null>(null);
+  const [modelos, setModelos] = React.useState<ModeloDisponible[]>([]);
 
   const cargar = React.useCallback(async () => {
     const r = await cargarConfiguracion();
@@ -122,6 +130,16 @@ export default function Configuracion({ disponible }: { disponible: boolean }) {
   React.useEffect(() => {
     if (disponible) void cargar();
   }, [disponible, cargar]);
+
+  // El catálogo se pide aparte: si OpenRouter no responde, el resto de la
+  // pantalla sigue funcionando y el modelo cae a un campo de texto libre. Es
+  // peor no poder cambiarlo que no tener la lista.
+  React.useEffect(() => {
+    if (!disponible) return;
+    void cargarModelos().then((r) => {
+      if (r.ok && r.datos) setModelos(r.datos);
+    });
+  }, [disponible]);
 
   const set = <K extends keyof Ajustes>(k: K, v: Ajustes[K]) => {
     setAjustes((a) => (a ? { ...a, [k]: v } : a));
@@ -411,12 +429,54 @@ export default function Configuracion({ disponible }: { disponible: boolean }) {
           </div>
 
           <div>
-            <Etiqueta modificado={cambiado("modelo")}>Modelo</Etiqueta>
-            <input
-              value={ajustes.modelo}
-              onChange={(e) => set("modelo", e.target.value)}
-              className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm font-mono"
-            />
+            <Etiqueta
+              ayuda={modelos.length ? `${modelos.length} disponibles` : "catálogo no disponible"}
+              modificado={cambiado("modelo")}
+            >
+              Modelo
+            </Etiqueta>
+            {modelos.length > 0 ? (
+              <>
+                <select
+                  value={modelos.some((m) => m.id === ajustes.modelo) ? ajustes.modelo : "__otro"}
+                  onChange={(e) => e.target.value !== "__otro" && set("modelo", e.target.value)}
+                  className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm"
+                >
+                  {!modelos.some((m) => m.id === ajustes.modelo) && (
+                    <option value="__otro">{ajustes.modelo} (escrito a mano)</option>
+                  )}
+                  {modelos.map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.gratis ? "· gratis · " : `· ${precioCorto(m.salidaPorMillon)} · `}
+                      {m.nombre}
+                    </option>
+                  ))}
+                </select>
+                {(() => {
+                  const sel = modelos.find((m) => m.id === ajustes.modelo);
+                  if (!sel) return null;
+                  return (
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      {sel.gratis
+                        ? "Sin costo. Suelen tener límites de uso y menos calidad; útiles para probar."
+                        : `${precioCorto(sel.entradaPorMillon)} por millón de tokens de entrada, ${precioCorto(sel.salidaPorMillon)} de salida.`}
+                      {sel.contexto ? ` Contexto de ${new Intl.NumberFormat("es-CO").format(sel.contexto)} tokens.` : ""}
+                    </p>
+                  );
+                })()}
+              </>
+            ) : (
+              <input
+                value={ajustes.modelo}
+                onChange={(e) => set("modelo", e.target.value)}
+                className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm font-mono"
+              />
+            )}
+            <p className="text-[11px] text-amber-700 mt-1">
+              Cambiar de modelo cambia el tono. Lo calibrado está con{" "}
+              <span className="font-mono">{origen.modelo}</span>; después de cambiarlo, revisa una
+              conversación real antes de dejarlo.
+            </p>
           </div>
 
           <div>
