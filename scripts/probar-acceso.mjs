@@ -58,6 +58,7 @@ const RUTAS = [
   "/admin/login",
   "/admin",
   "/admin/leads",
+  "/admin/ia-assistant",
   "/admin/usuarios",
   "/admin/configuracion",
   "/admin/proyectos",

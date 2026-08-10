@@ -96,6 +96,10 @@ export const ACCESO: readonly ReglaAcceso[] = [
   { prefijo: "/admin/preview", roles: ["propietario", "moderador"] },
   { prefijo: "/admin/accounting", roles: ["propietario", "contador"] },
   { prefijo: "/admin/accounting/configuracion", roles: ["propietario"] },
+  /* Solo el propietario. Aquí se leen conversaciones enteras con prospectos y
+     se puede escribir en nombre de la empresa: es más de lo que le compete al
+     moderador, que por la misma razón tampoco entra al CRM. */
+  { prefijo: "/admin/ia-assistant", roles: ["propietario"] },
 
   { prefijo: "/api/accounting", roles: ["propietario", "contador"] },
   { prefijo: "/api/usuarios", roles: ["propietario"] },

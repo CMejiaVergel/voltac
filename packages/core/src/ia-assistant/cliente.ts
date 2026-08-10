@@ -117,11 +117,14 @@ async function pedir<T>(
   const corte = setTimeout(() => control.abort(), opciones.espera ?? ESPERA_MS.rapida);
 
   try {
+    /* El content-type solo va cuando hay cuerpo. Anunciar JSON y no mandar
+       nada hace que el servidor intente parsear una cadena vacía y responda
+       500: es lo que rompía el botón de devolver la conversación al bot. */
     const r = await fetch(`${config.url}${ruta}`, {
       method: opciones.metodo ?? "GET",
       headers: {
-        "content-type": "application/json",
         authorization: `Bearer ${config.token}`,
+        ...(opciones.cuerpo ? { "content-type": "application/json" } : {}),
       },
       body: opciones.cuerpo ? JSON.stringify(opciones.cuerpo) : undefined,
       signal: control.signal,
@@ -173,8 +176,105 @@ export interface EstadoAsistente {
   tenant: string;
   pausado: boolean;
   leads: number;
+  conversaciones: number;
+  esperandoRespuesta: number;
 }
 
 export function estadoAsistente(): Promise<EstadoAsistente> {
   return pedir<EstadoAsistente>("/crm/estado");
+}
+
+// --- La bandeja ------------------------------------------------------------
+
+/**
+ * Red por la que llegó el mensaje.
+ *
+ * Hoy siempre WhatsApp. El tipo se declara abierto desde ya porque la bandeja
+ * pinta el icono a partir de este dato: cuando entren Messenger e Instagram no
+ * habrá que tocar la lista, solo añadir el icono.
+ */
+export type Canal = "whatsapp" | "messenger" | "instagram" | "console";
+
+/** Quién escribió un mensaje del hilo. */
+export type Autor = "cliente" | "bot" | "persona";
+
+export interface ConversacionResumen {
+  conversationId: string;
+  waId: string;
+  canal: Canal;
+  nombre?: string;
+  ultimoMensaje?: string;
+  ultimoMensajeDe?: Autor;
+  ultimaActividad: number;
+  lastInboundAt?: number;
+  /** El cliente escribió y nadie ha contestado. */
+  esperandoRespuesta: boolean;
+  estado: "bot" | "human" | "paused";
+  escalado: boolean;
+  crmId?: number;
+  leadEstado?: string;
+  prioridad?: string;
+}
+
+export interface Mensaje {
+  de: Autor;
+  texto: string;
+  at: number;
+}
+
+export interface AccionRegistrada {
+  tipo: string;
+  datos?: Record<string, unknown>;
+  at: number;
+}
+
+export interface ConversacionDetalle {
+  conversationId: string;
+  waId: string;
+  canal: Canal;
+  nombre?: string;
+  estado: "bot" | "human" | "paused";
+  escalado: boolean;
+  motivoEscalamiento?: string;
+  esperandoRespuesta: boolean;
+  /** Resumen de los turnos ya compactados. Lo primero que hay que leer. */
+  ficha?: string;
+  campos: Record<string, string>;
+  mensajes: Mensaje[];
+  acciones: AccionRegistrada[];
+  lead?: { crmId?: number; estado: string; prioridad?: string; puntaje?: number };
+}
+
+export function listarConversaciones(): Promise<{ conversaciones: ConversacionResumen[] }> {
+  return pedir("/crm/conversaciones");
+}
+
+export function verConversacion(id: string): Promise<ConversacionDetalle> {
+  return pedir(`/crm/conversaciones/${encodeURIComponent(id)}`);
+}
+
+/** Responde como persona. Pausa el asistente en esa conversación. */
+export function responderConversacion(id: string, texto: string): Promise<{ ok: boolean }> {
+  return pedir(`/crm/conversaciones/${encodeURIComponent(id)}/responder`, {
+    metodo: "POST",
+    cuerpo: { texto },
+    espera: ESPERA_MS.modelo,
+  });
+}
+
+export function devolverAlBot(id: string): Promise<{ ok: boolean }> {
+  return pedir(`/crm/conversaciones/${encodeURIComponent(id)}/devolver-al-bot`, {
+    metodo: "POST",
+  });
+}
+
+export interface Novedades {
+  ahora: number;
+  nuevos: number;
+  esperandoRespuesta: number;
+  conversaciones: { conversationId: string; lastInboundAt?: number }[];
+}
+
+export function novedades(desde: number): Promise<Novedades> {
+  return pedir(`/crm/novedades?desde=${desde}`);
 }
