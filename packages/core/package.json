@@ -34,6 +34,7 @@
     "./ia-assistant/cliente": "./src/ia-assistant/cliente.ts",
     "./ia-assistant/acciones": "./src/ia-assistant/acciones.ts",
     "./ia-assistant/acciones-bandeja": "./src/ia-assistant/acciones-bandeja.ts",
+    "./ia-assistant/acciones-config": "./src/ia-assistant/acciones-config.ts",
     "./ia-assistant/ui/*": "./src/ia-assistant/ui/*.tsx",
     "./ia-assistant/api/*": "./src/ia-assistant/api/*.ts"
   },

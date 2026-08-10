@@ -108,7 +108,7 @@ const ESPERA_MS = { rapida: 8_000, modelo: 45_000 };
 
 async function pedir<T>(
   ruta: string,
-  opciones: { metodo?: "GET" | "POST"; cuerpo?: unknown; espera?: number } = {},
+  opciones: { metodo?: "GET" | "POST" | "PUT"; cuerpo?: unknown; espera?: number } = {},
 ): Promise<T> {
   const config = configAsistente();
   if (!config) throw new AsistenteNoConfigurado();
@@ -277,4 +277,55 @@ export interface Novedades {
 
 export function novedades(desde: number): Promise<Novedades> {
   return pedir(`/crm/novedades?desde=${desde}`);
+}
+
+// --- Configuración ----------------------------------------------------------
+
+/** Un ejemplo comparado. Es lo que más mueve el tono, más que cualquier regla. */
+export interface EjemploTono {
+  cliente: string;
+  mal: string;
+  bien: string;
+}
+
+export interface Ajustes {
+  pausado: boolean;
+  modelo: string;
+  temperatura: number;
+  maxTokens: number;
+  debounceSegundos: number;
+  esperaMaximaSegundos: number;
+  maxToques: number;
+  esperaDias: number[];
+  largoObjetivo: number;
+  tratamiento: "tu" | "usted" | "reflejar";
+  instruccionExtra: string;
+  frasesPropias: string[];
+  evitar: string[];
+  ejemplos: EjemploTono[];
+}
+
+export interface AjustesCompletos {
+  ajustes: Ajustes;
+  /** Los valores de origen, para poder comparar y volver atrás. */
+  origen: Ajustes;
+  /** Qué campos se cambiaron a mano. El resto viene del entorno. */
+  modificados: string[];
+}
+
+export function traerAjustes(): Promise<AjustesCompletos> {
+  return pedir("/crm/ajustes");
+}
+
+export function escribirAjustes(patch: Partial<Ajustes>): Promise<{ ajustes: Ajustes }> {
+  return pedir("/crm/ajustes", { metodo: "PUT", cuerpo: patch });
+}
+
+export function restaurarAjustes(): Promise<{ ajustes: Ajustes }> {
+  return pedir("/crm/ajustes/restaurar", { metodo: "POST" });
+}
+
+/** El prompt tal como lo recibe el modelo ahora mismo. */
+export function verPrompt(): Promise<{ prompt: string; herramientas: string[]; caracteres: number }> {
+  return pedir("/crm/prompt", { espera: ESPERA_MS.modelo });
 }
