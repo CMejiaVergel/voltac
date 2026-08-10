@@ -7,6 +7,7 @@
 #   DATA_DIR/
 #     contabilidad.db      facturas, terceros, movimientos, calendario
 #     sistema.db           usuarios del panel y auditoria
+#     contenido.db         calendario editorial y publicaciones
 #     systems/voltac.db    prospectos, proyectos y noticias de esa marca
 #     energy/voltac.db     idem, de la otra marca
 #     uploads/             imagenes de proyectos y del blog, por marca
@@ -83,6 +84,7 @@ respaldar_base() {
 
 respaldar_base "contabilidad.db"
 respaldar_base "sistema.db"
+respaldar_base "contenido.db"
 respaldar_base "systems/voltac.db"
 respaldar_base "energy/voltac.db"
 

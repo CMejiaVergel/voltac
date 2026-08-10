@@ -47,6 +47,22 @@ export function systemPath(): string {
 }
 
 /**
+ * Contenido: calendario editorial, publicaciones y campañas.
+ *
+ * Compartida, y no una por marca, porque quien la usa es una sola persona
+ * planificando las dos a la vez. Partirla por vertical la obligaría a cambiar
+ * de dominio para ver su propia semana.
+ *
+ * En archivo propio y no dentro de `sistema.db` porque su ciclo de vida es
+ * distinto: crece rápido, se puede purgar por antigüedad y algún día pesará más
+ * que todo lo demás junto. Las cuentas de usuario no deberían viajar en esos
+ * respaldos.
+ */
+export function contentPath(): string {
+  return join(dataDir(), "contenido.db");
+}
+
+/**
  * Raíz de los archivos subidos desde el panel.
  *
  * Los adjuntos sí se separan por línea de negocio: las imágenes de un proyecto

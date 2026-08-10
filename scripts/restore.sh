@@ -22,7 +22,7 @@ MODO="${2:-prueba}"
 DATA_DIR="${VOLTAC_DATA_DIR:-/var/www/voltac-data}"
 BACKUP_DIR="${BACKUP_DIR:-/var/backups/voltac}"
 
-BASES=("contabilidad.db" "sistema.db" "systems/voltac.db" "energy/voltac.db")
+BASES=("contabilidad.db" "sistema.db" "contenido.db" "systems/voltac.db" "energy/voltac.db")
 
 if [ -z "$ARCHIVE" ] || [ ! -f "$ARCHIVE" ]; then
   echo "Uso: $0 <archivo.tar.gz> [--en-produccion]"

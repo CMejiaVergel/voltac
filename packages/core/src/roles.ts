@@ -41,11 +41,17 @@ export const ROL_DESCRIPCION: Record<Rol, string> = {
   moderador: "Métricas, calendario de contenido, proyectos y noticias.",
 };
 
-/** Dónde aterriza cada rol al entrar. El login siempre manda a `/admin`. */
+/**
+ * Dónde aterriza cada rol al entrar. El login siempre manda a `/admin`.
+ *
+ * El moderador cae en el calendario y no en las métricas: lo primero que
+ * necesita al abrir el panel es qué le toca hoy, no cuánta gente visitó el
+ * sitio la semana pasada.
+ */
 export const INICIO: Record<Rol, string> = {
   propietario: "/admin",
   contador: "/admin/accounting",
-  moderador: "/admin/analytics",
+  moderador: "/admin/contenido",
 };
 
 export interface ReglaAcceso {
@@ -82,12 +88,14 @@ export const ACCESO: readonly ReglaAcceso[] = [
   { prefijo: "/admin/proyectos", roles: ["propietario", "moderador"] },
   { prefijo: "/admin/news", roles: ["propietario", "moderador"] },
   { prefijo: "/admin/analytics", roles: ["propietario", "moderador"] },
+  { prefijo: "/admin/contenido", roles: ["propietario", "moderador"] },
   { prefijo: "/admin/preview", roles: ["propietario", "moderador"] },
   { prefijo: "/admin/accounting", roles: ["propietario", "contador"] },
   { prefijo: "/admin/accounting/configuracion", roles: ["propietario"] },
 
   { prefijo: "/api/accounting", roles: ["propietario", "contador"] },
   { prefijo: "/api/usuarios", roles: ["propietario"] },
+  { prefijo: "/api/contenido", roles: ["propietario", "moderador"] },
   // Subida de imagenes del blog. No tenia ninguna comprobacion: cualquiera
   // podia escribir archivos en el disco del servidor sin credenciales.
   { prefijo: "/api/upload-news-image", roles: ["propietario", "moderador"] },

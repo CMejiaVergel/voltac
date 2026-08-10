@@ -1,5 +1,15 @@
 @import "tailwindcss";
 
+/*
+ * Tailwind v4 descubre las clases solo, pero partiendo de la raiz de ESTA
+ * aplicacion, y las pantallas compartidas viven en packages/core. Sin esta
+ * linea, de todo lo que escribe el nucleo solo funcionaban las clases que por
+ * casualidad usaba tambien algun archivo de la app: el resto llegaba al HTML
+ * sin ninguna regla detras. Asi se colo un calendario cuya rejilla de siete
+ * columnas se pintaba en una sola.
+ */
+@source "../../../../packages/core/src";
+
 @plugin "tailwindcss-animate";
 
 @custom-variant dark (&:is(.dark *));

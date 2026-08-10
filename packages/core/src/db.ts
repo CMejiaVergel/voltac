@@ -2,7 +2,7 @@ import sqlite3 from 'sqlite3';
 import { open, Database } from 'sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
-import { accountingPath, operationalPath, systemPath } from './paths';
+import { accountingPath, contentPath, operationalPath, systemPath } from './paths';
 import { currentVertical } from './vertical';
 
 /**
@@ -13,6 +13,7 @@ import { currentVertical } from './vertical';
  *   DATA_DIR/
  *     contabilidad.db      <- una sola: la empresa es una sola
  *     sistema.db           <- usuarios del panel y auditoria, tambien comunes
+ *     contenido.db         <- calendario editorial y publicaciones, comunes
  *     systems/voltac.db    <- prospectos, proyectos y noticias de esa marca
  *     energy/voltac.db     <- idem, de la otra marca
  *
@@ -46,6 +47,10 @@ export async function getDB() {
     // en archivo propio para que restaurar la contabilidad no vuelva atras las
     // cuentas de usuario ni el registro de auditoria.
     await db.exec(`ATTACH DATABASE '${systemPath().replace(/'/g, "''")}' AS sys`);
+
+    // Contenido: el calendario editorial es de quien lleva las dos marcas a la
+    // vez, asi que no puede vivir en una base por marca.
+    await db.exec(`ATTACH DATABASE '${contentPath().replace(/'/g, "''")}' AS cont`);
 
     // Integridad referencial y espera ante escrituras concurrentes: dos
     // aplicaciones escriben ahora sobre el mismo archivo de contabilidad.
@@ -89,6 +94,40 @@ export async function getDB() {
 
       CREATE INDEX IF NOT EXISTS sys.idx_auditoria_at ON auditoria(at);
       CREATE INDEX IF NOT EXISTS sys.idx_auditoria_usuario ON auditoria(usuario, at);
+    `);
+
+    /*
+     * Calendario editorial.
+     *
+     * `marca` admite 'ambas' porque hay actividades que no son de una linea ni
+     * de otra: una sesion de grabacion en la que se sacan piezas para las dos,
+     * una reunion de planificacion.
+     *
+     * Sobre las fechas: se guardan como hora local de Colombia, no en UTC.
+     * Colombia no cambia la hora en todo el año, asi que su hora local es
+     * inequivoca, y guardar el reloj de pared evita de raiz toda la familia de
+     * errores de cinco horas al pintar y al filtrar. Si algun dia hay que
+     * operar en otro huso, esto hay que revisarlo a proposito.
+     */
+    await db.exec(`
+      CREATE TABLE IF NOT EXISTS cont.actividades (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        marca TEXT NOT NULL DEFAULT 'ambas',
+        titulo TEXT NOT NULL,
+        tipo TEXT NOT NULL DEFAULT 'publicacion',
+        inicia_en TEXT NOT NULL,
+        duracion_min INTEGER NOT NULL DEFAULT 60,
+        todo_el_dia INTEGER NOT NULL DEFAULT 0,
+        estado TEXT NOT NULL DEFAULT 'planificada',
+        responsable TEXT,
+        notas TEXT,
+        creado_por TEXT,
+        creado_en TEXT NOT NULL DEFAULT (datetime('now')),
+        actualizado_en TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+
+      CREATE INDEX IF NOT EXISTS cont.idx_actividades_inicia ON actividades(inicia_en);
+      CREATE INDEX IF NOT EXISTS cont.idx_actividades_marca ON actividades(marca, inicia_en);
     `);
 
     await db.exec(`
