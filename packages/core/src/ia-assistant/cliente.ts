@@ -311,6 +311,14 @@ export interface AjustesCompletos {
   origen: Ajustes;
   /** Qué campos se cambiaron a mano. El resto viene del entorno. */
   modificados: string[];
+  /**
+   * Modelos que ya tienen perfil calibrado.
+   *
+   * Cada modelo guarda el suyo: temperatura, largo, trato, ejemplos. Volver a
+   * uno ya probado restaura exactamente lo que se dejó, y tocar otro no lo
+   * afecta. Lo operativo —pausa, ritmo, insistencia— es común a todos.
+   */
+  modelosConPerfil: string[];
 }
 
 export function traerAjustes(): Promise<AjustesCompletos> {

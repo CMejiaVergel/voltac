@@ -114,6 +114,8 @@ export default function Configuracion({ disponible }: { disponible: boolean }) {
   const [guardando, setGuardando] = React.useState(false);
   const [prompt, setPrompt] = React.useState<string | null>(null);
   const [modelos, setModelos] = React.useState<ModeloDisponible[]>([]);
+  const [conPerfil, setConPerfil] = React.useState<string[]>([]);
+  const [cambiandoModelo, setCambiandoModelo] = React.useState(false);
 
   const cargar = React.useCallback(async () => {
     const r = await cargarConfiguracion();
@@ -124,6 +126,7 @@ export default function Configuracion({ disponible }: { disponible: boolean }) {
     setAjustes(r.datos.ajustes);
     setOrigen(r.datos.origen);
     setModificados(r.datos.modificados);
+    setConPerfil(r.datos.modelosConPerfil);
     setSucio(false);
   }, []);
 
@@ -147,6 +150,35 @@ export default function Configuracion({ disponible }: { disponible: boolean }) {
     setAviso("");
   };
 
+  /**
+   * Cambiar de modelo se guarda al instante, no con el botón.
+   *
+   * Cada modelo tiene su propio perfil, así que al cambiar hay que traer el
+   * suyo. Si esperara al guardado, la pantalla mostraría los valores del modelo
+   * anterior bajo el nombre del nuevo —y al guardar los escribiría en el perfil
+   * equivocado, pisando justo lo que los perfiles existen para proteger.
+   */
+  const cambiarModelo = async (id: string) => {
+    if (sucio && !confirm("Hay cambios sin guardar en este perfil. ¿Cambiar de modelo y perderlos?")) {
+      return;
+    }
+    setCambiandoModelo(true);
+    setError("");
+    const r = await guardarConfiguracion({ modelo: id });
+    setCambiandoModelo(false);
+    if (!r.ok) {
+      setError(r.error ?? "No se pudo cambiar el modelo.");
+      return;
+    }
+    setAviso(
+      conPerfil.includes(id)
+        ? "Cargado el perfil que ya tenías para este modelo."
+        : "Perfil nuevo, copiado del modelo anterior. Revisa la temperatura: no se traduce entre modelos.",
+    );
+    setPrompt(null);
+    void cargar();
+  };
+
   const guardar = async () => {
     if (!ajustes) return;
     setGuardando(true);
@@ -163,7 +195,14 @@ export default function Configuracion({ disponible }: { disponible: boolean }) {
   };
 
   const restaurar = async () => {
-    if (!confirm("¿Volver a los valores de origen? Se pierde todo lo que hayas ajustado aquí.")) {
+    if (
+      !confirm(
+        `¿Volver a los valores de origen el perfil de ${ajustes?.modelo}?
+
+` +
+          "Solo afecta a este modelo. Los perfiles de los demás y los ajustes de operación se quedan como están.",
+      )
+    ) {
       return;
     }
     const r = await volverAValoresDeOrigen();
@@ -171,7 +210,7 @@ export default function Configuracion({ disponible }: { disponible: boolean }) {
       setError(r.error ?? "No se pudo restaurar.");
       return;
     }
-    setAviso("Restaurado a los valores de origen.");
+    setAviso("Perfil restaurado a los valores de origen.");
     setPrompt(null);
     void cargar();
   };
@@ -259,9 +298,13 @@ export default function Configuracion({ disponible }: { disponible: boolean }) {
 
       {/* Estilo */}
       <section className="bg-card border border-border rounded-xl p-5 space-y-5">
-        <h3 className="font-bold uppercase tracking-wider text-sm text-secondary">
-          Cómo escribe
-        </h3>
+        <div>
+          <h3 className="font-bold uppercase tracking-wider text-sm text-secondary">Cómo escribe</h3>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            Del perfil de <span className="font-mono">{ajustes.modelo}</span>. Cada modelo guarda el
+            suyo.
+          </p>
+        </div>
 
         <div className="grid md:grid-cols-2 gap-5">
           <div>
@@ -423,8 +466,9 @@ export default function Configuracion({ disponible }: { disponible: boolean }) {
               </span>
             </div>
             <p className="text-[11px] text-muted-foreground mt-1">
-              El tono está calibrado en {origen.temperatura.toFixed(2)}. Subirlo mucho hace que
-              cada respuesta salga distinta y deje de parecerse a lo probado.
+              Este valor es del perfil de <span className="font-mono">{ajustes.modelo}</span> y no
+              afecta a los demás modelos. El punto de partida son {origen.temperatura.toFixed(2)};
+              subirlo mucho hace que cada respuesta salga distinta y deje de parecerse a lo probado.
             </p>
           </div>
 
@@ -439,14 +483,16 @@ export default function Configuracion({ disponible }: { disponible: boolean }) {
               <>
                 <select
                   value={modelos.some((m) => m.id === ajustes.modelo) ? ajustes.modelo : "__otro"}
-                  onChange={(e) => e.target.value !== "__otro" && set("modelo", e.target.value)}
-                  className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm"
+                  disabled={cambiandoModelo}
+                  onChange={(e) => e.target.value !== "__otro" && void cambiarModelo(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm disabled:opacity-50"
                 >
                   {!modelos.some((m) => m.id === ajustes.modelo) && (
                     <option value="__otro">{ajustes.modelo} (escrito a mano)</option>
                   )}
                   {modelos.map((m) => (
                     <option key={m.id} value={m.id}>
+                      {conPerfil.includes(m.id) ? "✓ " : ""}
                       {m.gratis ? "· gratis · " : `· ${precioCorto(m.salidaPorMillon)} · `}
                       {m.nombre}
                     </option>
@@ -472,10 +518,9 @@ export default function Configuracion({ disponible }: { disponible: boolean }) {
                 className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm font-mono"
               />
             )}
-            <p className="text-[11px] text-amber-700 mt-1">
-              Cambiar de modelo cambia el tono. Lo calibrado está con{" "}
-              <span className="font-mono">{origen.modelo}</span>; después de cambiarlo, revisa una
-              conversación real antes de dejarlo.
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Los marcados con ✓ ya tienen perfil guardado. Volver a uno restaura exactamente lo
+              que dejaste; estrenar otro copia el perfil actual como punto de partida.
             </p>
           </div>
 
@@ -518,9 +563,14 @@ export default function Configuracion({ disponible }: { disponible: boolean }) {
 
       {/* Cadencia */}
       <section className="bg-card border border-border rounded-xl p-5 space-y-5">
-        <h3 className="font-bold uppercase tracking-wider text-sm text-secondary">
-          Insistencia en el primer contacto
-        </h3>
+        <div>
+          <h3 className="font-bold uppercase tracking-wider text-sm text-secondary">
+            Insistencia en el primer contacto
+          </h3>
+          <p className="text-[11px] text-muted-foreground mt-0.5">
+            Común a todos los modelos: no depende de quién redacte.
+          </p>
+        </div>
 
         <div className="grid md:grid-cols-2 gap-5">
           <div>
@@ -592,7 +642,7 @@ export default function Configuracion({ disponible }: { disponible: boolean }) {
           onClick={() => void restaurar()}
           className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground hover:text-destructive transition-colors"
         >
-          <RotateCcw size={14} /> Volver a los valores de origen
+          <RotateCcw size={14} /> Restaurar el perfil de este modelo
         </button>
         <div className="flex items-center gap-3">
           {sucio && (
