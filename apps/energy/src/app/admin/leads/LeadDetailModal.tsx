@@ -4,8 +4,19 @@ import * as React from "react";
 import { X, Send, Save, FileText, Tag, Clock, User, MessageCircle, Calendar } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { updateLead, addNote } from "./actions";
+import WhatsAppContacto from "@voltac/core/ia-assistant/ui/WhatsAppContacto";
 
-export default function LeadDetailModal({ lead, onClose }: { lead: any; onClose: () => void }) {
+export default function LeadDetailModal({
+  lead,
+  onClose,
+  whatsappActivo = false,
+}: {
+  lead: any;
+  onClose: () => void;
+  /* Si esta linea tiene asistente configurado. Se decide en el servidor y baja
+     hasta aqui: el navegador no puede saberlo ni tiene por que. */
+  whatsappActivo?: boolean;
+}) {
   const [isEditing, setIsEditing] = React.useState(false);
   const [formData, setFormData] = React.useState(lead);
   const [newNote, setNewNote] = React.useState("");
@@ -140,6 +151,11 @@ export default function LeadDetailModal({ lead, onClose }: { lead: any; onClose:
                   )}
                </div>
             </div>
+
+            {/* Mismo sitio que en Systems: al final de la columna de datos del
+                prospecto, que es donde uno esta mirando su telefono cuando
+                decide escribirle. */}
+            {whatsappActivo && <WhatsAppContacto lead={lead} />}
 
           </div>
 

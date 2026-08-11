@@ -5,7 +5,7 @@ import { X, Send, Save, FileText, Tag, Clock, User, MessageCircle, Calendar } fr
 import { Button } from "@/components/ui/button";
 import { updateLead, addNote } from "./actions";
 import { budgetLabel } from "@/content/services";
-import WhatsAppContacto from "./WhatsAppContacto";
+import WhatsAppContacto from "@voltac/core/ia-assistant/ui/WhatsAppContacto";
 
 export default function LeadDetailModal({
   lead,

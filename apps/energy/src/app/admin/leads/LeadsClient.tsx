@@ -7,7 +7,13 @@ import LeadDetailModal from "./LeadDetailModal";
 import LeadCreateModal from "./LeadCreateModal";
 import { updateLeadStage, deleteLeads } from "./actions";
 
-export default function LeadsClient({ initialLeads }: { initialLeads: any[] }) {
+export default function LeadsClient({
+  initialLeads,
+  whatsappActivo = false,
+}: {
+  initialLeads: any[];
+  whatsappActivo?: boolean;
+}) {
   const [leads, setLeads] = React.useState(initialLeads);
   const [search, setSearch] = React.useState("");
   
@@ -357,7 +363,7 @@ export default function LeadsClient({ initialLeads }: { initialLeads: any[] }) {
         </div>
       </div>
 
-      {activeLead && <LeadDetailModal lead={activeLead} onClose={() => setActiveLead(null)} />}
+      {activeLead && <LeadDetailModal lead={activeLead} whatsappActivo={whatsappActivo} onClose={() => setActiveLead(null)} />}
       {isCreateOpen && <LeadCreateModal onClose={() => setIsCreateOpen(false)} />}
       
       {/* Delete Modal */}

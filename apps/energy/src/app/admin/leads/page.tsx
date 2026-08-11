@@ -1,6 +1,7 @@
 import * as React from "react";
 import { getDB } from "@/lib/db";
 import LeadsClient from "./LeadsClient";
+import { asistenteDisponible } from "@voltac/core/ia-assistant/cliente";
 
 export const dynamic = 'force-dynamic';
 
@@ -18,5 +19,5 @@ export default async function AdminLeadsPage() {
 
   const leadsWithNotes = leads.map(l => ({ ...l, notes: notesMap[l.id] || [] }));
 
-  return <LeadsClient initialLeads={leadsWithNotes} />;
+  return <LeadsClient initialLeads={leadsWithNotes} whatsappActivo={asistenteDisponible()} />;
 }

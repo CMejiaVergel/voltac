@@ -2,9 +2,8 @@
 
 import * as React from "react";
 import { MessageCircle, Sparkles, Send, AlertTriangle, CheckCircle2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { prepararWhatsApp, enviarWhatsApp } from "@voltac/core/ia-assistant/acciones";
-import type { RespuestaPreview } from "@voltac/core/ia-assistant/cliente";
+import { prepararWhatsApp, enviarWhatsApp } from "../acciones";
+import type { RespuestaPreview } from "../cliente";
 
 /**
  * Contacto autorizado por WhatsApp.
@@ -17,6 +16,11 @@ import type { RespuestaPreview } from "@voltac/core/ia-assistant/cliente";
  *
  * Nada de esto ocurre solo. No hay proceso automático que contacte prospectos:
  * cada mensaje sale de alguien pulsando este botón.
+ *
+ * Vive en el núcleo y no en una aplicación porque no es propio de ninguna marca:
+ * pedir permiso antes de escribirle a un prospecto es de la plataforma. Nació en
+ * `apps/systems` y por eso Energy se quedó sin él durante un tiempo, que es
+ * justo el problema que se evita teniéndolo aquí.
  */
 export default function WhatsAppContacto({ lead }: { lead: any }) {
   const [cargando, setCargando] = React.useState(false);
@@ -146,22 +150,28 @@ export default function WhatsAppContacto({ lead }: { lead: any }) {
                   Puede corregirlo. Se envía exactamente lo que quede aquí.
                 </p>
               </div>
-              <Button
+              <button
+                type="button"
                 onClick={enviar}
                 disabled={enviando || !texto.trim()}
-                className="w-full bg-green-600 hover:bg-green-700 text-white"
+                className="w-full inline-flex items-center justify-center rounded-xl bg-green-600 hover:bg-green-700 text-white text-sm font-semibold h-10 px-4 disabled:opacity-50 disabled:pointer-events-none transition-colors"
               >
                 <Send size={16} className={`mr-2 ${enviando ? "animate-pulse" : ""}`} />
                 {enviando ? "Enviando…" : "Autorizar y enviar por WhatsApp"}
-              </Button>
+              </button>
             </div>
           )}
 
           {!previo && (
-            <Button variant="outline" onClick={preparar} disabled={cargando} className="w-full">
+            <button
+              type="button"
+              onClick={preparar}
+              disabled={cargando}
+              className="w-full inline-flex items-center justify-center rounded-xl border border-border bg-background hover:bg-muted text-sm font-semibold h-10 px-4 disabled:opacity-50 disabled:pointer-events-none transition-colors"
+            >
               <Sparkles size={16} className={`mr-2 ${cargando ? "animate-pulse" : ""}`} />
               {cargando ? "Redactando…" : enviado ? "Preparar otro mensaje" : "Preparar mensaje"}
-            </Button>
+            </button>
           )}
         </>
       )}
