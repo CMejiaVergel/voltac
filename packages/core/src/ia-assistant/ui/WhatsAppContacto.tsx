@@ -42,33 +42,61 @@ export default function WhatsAppContacto({ lead }: { lead: any }) {
     setEnviado(null);
   }, [lead.id]);
 
+  /*
+   * El try/catch no es decoracion.
+   *
+   * Sin el, una accion de servidor que lanza deja este `await` rechazado, el
+   * `setCargando(false)` no llega nunca, y el boton se queda en "Redactando…"
+   * indefinidamente sin explicar nada. Paso: una consulta pedia una columna que
+   * no existe en la tabla de Energy y el sintoma fue un boton colgado, que no
+   * apunta a la causa por ningun lado.
+   *
+   * Un fallo tiene que verse como un fallo, aunque no sepamos cual.
+   */
   const preparar = async () => {
     setCargando(true);
     setError("");
     setEnviado(null);
-    const r = await prepararWhatsApp(lead.id);
-    setCargando(false);
-
-    if (!r.ok || !r.datos) {
-      setError(r.error ?? "No se pudo preparar el mensaje.");
-      return;
+    try {
+      const r = await prepararWhatsApp(lead.id);
+      if (!r.ok || !r.datos) {
+        setError(r.error ?? "No se pudo preparar el mensaje.");
+        return;
+      }
+      setPrevio(r.datos);
+      setTexto(r.datos.borrador ?? "");
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? `Falló al preparar el mensaje: ${err.message}`
+          : "Falló al preparar el mensaje.",
+      );
+    } finally {
+      setCargando(false);
     }
-    setPrevio(r.datos);
-    setTexto(r.datos.borrador ?? "");
   };
 
   const enviar = async () => {
     setEnviando(true);
     setError("");
-    const r = await enviarWhatsApp(lead.id, texto);
-    setEnviando(false);
-
-    if (!r.ok) {
-      setError(r.error ?? "No se pudo enviar.");
-      return;
+    try {
+      const r = await enviarWhatsApp(lead.id, texto);
+      if (!r.ok) {
+        setError(r.error ?? "No se pudo enviar.");
+        return;
+      }
+      setEnviado(r.datos?.mensaje ?? texto);
+      setPrevio(null);
+    } catch (err) {
+      // Aqui colgarse seria peor todavia: no se sabria si el mensaje salio.
+      setError(
+        err instanceof Error
+          ? `Falló el envío: ${err.message}. Revisa la conversación antes de reintentar, por si alcanzó a salir.`
+          : "Falló el envío.",
+      );
+    } finally {
+      setEnviando(false);
     }
-    setEnviado(r.datos?.mensaje ?? texto);
-    setPrevio(null);
   };
 
   return (

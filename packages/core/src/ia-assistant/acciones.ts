@@ -30,13 +30,19 @@ export interface ResultadoAccion<T> {
   datos?: T;
 }
 
-/** Los datos del lead que el asistente necesita, leídos de la base. */
+/**
+ * Los datos del lead que el asistente necesita, leídos de la base.
+ *
+ * `SELECT *` y no una lista de columnas. La tabla `quotes` **no tiene la misma
+ * forma en las dos marcas**: la de Energy nació antes, con las columnas del
+ * formulario solar, y no tiene `company`, `requirement`, `budget` ni
+ * `projectType`. Pedirlas por nombre lanzaba `no such column` y dejaba el botón
+ * de contacto colgado en "Redactando…" sin decir nada.
+ */
 async function leerLead(id: number): Promise<LeadParaAsistente | null> {
   const db = await getDB();
   const fila = await db.get(
-    `SELECT id, fullName, phone, email, company, requirement, message, budget, source, projectType
-       FROM quotes
-      WHERE id = ? AND (isDeleted = 0 OR isDeleted IS NULL)`,
+    `SELECT * FROM quotes WHERE id = ? AND (isDeleted = 0 OR isDeleted IS NULL)`,
     [id],
   );
   if (!fila) return null;
@@ -46,14 +52,29 @@ async function leerLead(id: number): Promise<LeadParaAsistente | null> {
     crmVertical: currentVertical(),
     fullName: fila.fullName,
     phone: fila.phone,
-    email: fila.email,
-    company: fila.company,
-    requirement: fila.requirement,
-    message: fila.message,
-    budget: fila.budget,
-    source: fila.source,
-    projectType: fila.projectType,
+    email: fila.email ?? null,
+    company: fila.company ?? null,
+    /* Lo que el prospecto necesita. En Systems es un campo propio; en Energy
+       hay que armarlo con lo que sí pidió su formulario. No es un relleno: el
+       consumo y la ciudad son justo lo que el asistente solar necesita para que
+       el primer mensaje hable del caso de la persona y no de generalidades. */
+    requirement: fila.requirement ?? contextoSolar(fila),
+    message: fila.message ?? null,
+    budget: fila.budget ?? null,
+    source: fila.source ?? null,
+    projectType: fila.projectType ?? fila.modality ?? fila.installType ?? null,
   };
+}
+
+/** Resume en una frase lo que el formulario de Energy sí recogió. */
+function contextoSolar(fila: Record<string, any>): string | null {
+  const partes: string[] = [];
+  if (fila.consumption) partes.push(`consume ${fila.consumption} kWh al mes`);
+  if (fila.location || fila.address) partes.push(`en ${fila.location ?? fila.address}`);
+  if (fila.installType) partes.push(`instalación de tipo ${fila.installType}`);
+  if (fila.gridType) partes.push(`red ${fila.gridType}`);
+  if (fila.objective) partes.push(`busca ${fila.objective}`);
+  return partes.length ? partes.join(", ") : null;
 }
 
 export async function prepararWhatsApp(
