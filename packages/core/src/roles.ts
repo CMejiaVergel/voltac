@@ -116,6 +116,10 @@ export const ACCESO: readonly ReglaAcceso[] = [
      habla la empresa. */
   { prefijo: "/admin/ia-assistant/configuracion", roles: ["propietario"] },
   { prefijo: "/admin/leads", roles: ["propietario", "asesor"] },
+  /* Dimensionamiento existe solo en Energy. Lo alcanzan las mismas personas que
+     atienden prospectos, porque es la herramienta con la que se les responde
+     cuánto cuesta: separarla del CRM obligaría a pedirle el cálculo a otro. */
+  { prefijo: "/admin/dimensionamiento", roles: ["propietario", "asesor"] },
 
   { prefijo: "/api/accounting", roles: ["propietario", "contador"] },
   { prefijo: "/api/usuarios", roles: ["propietario"] },

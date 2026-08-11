@@ -223,6 +223,35 @@ export async function getDB() {
       CREATE INDEX IF NOT EXISTS idx_analytics_at ON analytics_events(at);
       CREATE INDEX IF NOT EXISTS idx_analytics_event ON analytics_events(event);
 
+      /*
+       * Estudios de dimensionamiento fotovoltaico.
+       *
+       * En la practica solo los usa Energy: la tabla se crea en las dos bases
+       * porque el esquema es comun, pero en Systems se queda vacia. Vale mas
+       * una tabla vacia que una rama condicional en la creacion del esquema.
+       *
+       * La columna "resultado" guarda el calculo YA HECHO, no solo la entrada.
+       * Es deliberado y es lo unico importante de esta tabla: los precios de
+       * referencia cambian, y un estudio que se le enseno a un cliente el mes
+       * pasado tiene que seguir mostrando la cifra que se le dijo. Recalcular
+       * al abrirlo haria que la cotizacion cambiara sola despues de enviada.
+       */
+      CREATE TABLE IF NOT EXISTS estudios_dimensionamiento (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        lead_id INTEGER REFERENCES quotes(id) ON DELETE SET NULL,
+        titulo TEXT NOT NULL DEFAULT '',
+        entrada TEXT NOT NULL,
+        resultado TEXT NOT NULL,
+        calificacion TEXT,
+        origen TEXT NOT NULL DEFAULT 'panel',
+        notas TEXT,
+        creado_por TEXT,
+        creado_en TEXT NOT NULL DEFAULT (datetime('now')),
+        actualizado_en TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+      CREATE INDEX IF NOT EXISTS idx_estudios_creado ON estudios_dimensionamiento(creado_en);
+      CREATE INDEX IF NOT EXISTS idx_estudios_lead ON estudios_dimensionamiento(lead_id);
+
 
       -- TABLAS MÓDULO ACCOUNTING
       CREATE TABLE IF NOT EXISTS conta.acc_accounts (
