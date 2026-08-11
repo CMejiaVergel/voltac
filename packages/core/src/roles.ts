@@ -90,6 +90,10 @@ export interface ReglaAcceso {
  *    pasó en cada conversación. Se autentica con la misma tabla `api_keys` que
  *    la ingesta: llega cuando el prospecto escribe, que puede ser de madrugada
  *    y sin nadie con sesión abierta.
+ *  - `/api/dimensionamiento` lo llama el asistente de WhatsApp de Energy para
+ *    calcular un sistema solar sin hacer la cuenta él mismo. Misma tabla
+ *    `api_keys`, y por el mismo motivo: llega cuando un prospecto pregunta un
+ *    precio, que puede ser a cualquier hora.
  *  - `/api/analytics` recibe eventos del sitio público; valida el tipo de
  *    evento y no expone lectura.
  *  - `/api/quote` es el formulario público de cotización.
