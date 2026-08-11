@@ -29,6 +29,7 @@ import {
 } from "../acciones-bandeja";
 import { limpiarConversacionConfirmada } from "../acciones-avanzadas";
 import type { ConversacionDetalle, ConversacionResumen } from "../cliente";
+import { SinAsistente } from "./SinAsistente";
 
 /**
  * Bandeja de conversaciones del asistente.
@@ -245,14 +246,7 @@ export default function Bandeja({ disponible }: { disponible: boolean }) {
 
   if (!disponible) {
     return (
-      <div className="bg-card border border-border rounded-xl p-12 text-center">
-        <h2 className="text-lg font-bold mb-2">Esta línea todavía no tiene asistente</h2>
-        <p className="text-sm text-muted-foreground max-w-md mx-auto">
-          El módulo está montado y listo. Para activarlo hay que levantar el proceso del asistente
-          para esta marca y apuntar el panel a él con <code className="text-xs">ASISTENTE_URL</code> y{" "}
-          <code className="text-xs">ASISTENTE_TOKEN</code>.
-        </p>
-      </div>
+      <SinAsistente />
     );
   }
 

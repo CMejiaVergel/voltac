@@ -5,6 +5,7 @@ import { CalendarDays, Video, MapPin, Users, Bot, AlertTriangle, RefreshCw } fro
 import { cn } from "../../utils";
 import { cargarAgenda } from "../acciones-avanzadas";
 import type { Agenda, EventoAgenda } from "../cliente";
+import { SinAsistente } from "./SinAsistente";
 
 /**
  * La agenda, dentro del módulo.
@@ -72,10 +73,7 @@ export default function Calendario({ disponible }: { disponible: boolean }) {
 
   if (!disponible) {
     return (
-      <div className="bg-card border border-border rounded-xl p-12 text-center">
-        <h2 className="text-lg font-bold mb-2">Esta línea todavía no tiene asistente</h2>
-        <p className="text-sm text-muted-foreground">Cuando esté configurada, aquí verás su agenda.</p>
-      </div>
+      <SinAsistente />
     );
   }
 

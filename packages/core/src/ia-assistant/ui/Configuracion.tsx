@@ -22,6 +22,7 @@ import {
 import { cargarModelos } from "../acciones-avanzadas";
 import type { Ajustes, EjemploTono, ModeloDisponible } from "../cliente";
 import { Vinculacion } from "./Vinculacion";
+import { SinAsistente } from "./SinAsistente";
 
 /**
  * Configuración del comportamiento del asistente.
@@ -231,12 +232,7 @@ export default function Configuracion({ disponible }: { disponible: boolean }) {
 
   if (!disponible) {
     return (
-      <div className="bg-card border border-border rounded-xl p-12 text-center">
-        <h2 className="text-lg font-bold mb-2">Esta línea todavía no tiene asistente</h2>
-        <p className="text-sm text-muted-foreground max-w-md mx-auto">
-          Cuando esté configurada, aquí se ajusta cómo responde.
-        </p>
-      </div>
+      <SinAsistente />
     );
   }
 

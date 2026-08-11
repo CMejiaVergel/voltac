@@ -15,6 +15,7 @@ import {
 import { cn } from "../../utils";
 import { cargarMetricas } from "../acciones-avanzadas";
 import type { Metricas } from "../cliente";
+import { SinAsistente } from "./SinAsistente";
 
 /**
  * Consumo y costo del asistente.
@@ -91,10 +92,7 @@ export default function Actividad({ disponible }: { disponible: boolean }) {
 
   if (!disponible) {
     return (
-      <div className="bg-card border border-border rounded-xl p-12 text-center">
-        <h2 className="text-lg font-bold mb-2">Esta línea todavía no tiene asistente</h2>
-        <p className="text-sm text-muted-foreground">Cuando esté configurada, aquí verás su consumo.</p>
-      </div>
+      <SinAsistente />
     );
   }
 

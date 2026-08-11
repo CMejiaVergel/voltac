@@ -38,6 +38,7 @@ import { cn } from "../../utils";
 import { cargarEstado } from "../acciones-bandeja";
 import { cargarMetricas } from "../acciones-avanzadas";
 import type { EstadoAsistente, Metricas } from "../cliente";
+import { SinAsistente } from "./SinAsistente";
 
 /**
  * Panel general del asistente. Es la portada del módulo.
@@ -189,12 +190,7 @@ export default function Panel({ disponible }: { disponible: boolean }) {
 
   if (!disponible) {
     return (
-      <div className="bg-card border border-border rounded-xl p-12 text-center">
-        <h2 className="text-lg font-bold mb-2">Esta línea todavía no tiene asistente</h2>
-        <p className="text-sm text-muted-foreground">
-          Cuando esté configurada, aquí verás su estado de un vistazo.
-        </p>
-      </div>
+      <SinAsistente />
     );
   }
 
