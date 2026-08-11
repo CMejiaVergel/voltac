@@ -4,6 +4,7 @@ import * as React from "react";
 import { AlertTriangle, CalendarDays, Copy, ExternalLink, Loader2, RefreshCw } from "lucide-react";
 import { cn } from "../../utils";
 import { cargarGoogle } from "../acciones-avanzadas";
+import { guardarConfiguracion } from "../acciones-config";
 import type { EstadoGoogle } from "../cliente";
 
 /**
@@ -24,6 +25,7 @@ export function Google() {
   const [cargando, setCargando] = React.useState(true);
   const [error, setError] = React.useState("");
   const [copiado, setCopiado] = React.useState(false);
+  const [guardando, setGuardando] = React.useState(false);
 
   const refrescar = React.useCallback(async () => {
     const r = await cargarGoogle();
@@ -58,6 +60,26 @@ export function Google() {
       window.removeEventListener("focus", alVolver);
     };
   }, [refrescar]);
+
+  /**
+   * Cambia el calendario en el que se agenda.
+   *
+   * Va por el mismo guardado que el resto de la configuración del asistente, no
+   * por el `.env`: el calendario se decide mirando Google, no editando un
+   * archivo en el servidor, y cambiarlo no debería exigir un reinicio.
+   */
+  async function elegirCalendario(id: string) {
+    if (!id) return;
+    setGuardando(true);
+    setError("");
+    const r = await guardarConfiguracion({ calendarioId: id });
+    setGuardando(false);
+    if (!r.ok) {
+      setError(r.error ?? "No se pudo cambiar el calendario.");
+      return;
+    }
+    await refrescar();
+  }
 
   async function copiar(texto: string) {
     try {
@@ -123,14 +145,46 @@ export function Google() {
         </div>
       )}
 
-      {g?.conectado && g.calendario === "primary" && (
-        <p className="text-[11px] text-muted-foreground leading-relaxed flex gap-1.5 items-start">
-          <AlertTriangle size={12} className="shrink-0 mt-0.5 text-amber-500" />
-          Con el calendario en <span className="font-mono">primary</span>, las reuniones caen en la agenda
-          principal de esa cuenta. Si la otra línea de negocio usa la misma, las citas de las dos se mezclan.
-          Para separarlas, crea un calendario aparte en Google y pon su identificador en{" "}
-          <span className="font-mono">GOOGLE_CALENDAR_ID</span>.
-        </p>
+      {g?.conectado && g.calendarios.length > 0 && (
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-secondary/70 uppercase tracking-wider">
+            Calendario donde agenda
+          </label>
+          <div className="flex gap-2">
+            <select
+              value={g.calendarios.some((c) => c.id === g.calendario) ? g.calendario : ""}
+              onChange={(e) => void elegirCalendario(e.target.value)}
+              disabled={guardando}
+              className="flex-1 rounded-lg border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+            >
+              {/* Solo aparece si el calendario configurado no esta en la lista:
+                  o se borro en Google, o la cuenta ya no llega a el. Callarlo
+                  haria que el selector mostrara otro y pareciera correcto. */}
+              {!g.calendarios.some((c) => c.id === g.calendario) && (
+                <option value="">
+                  {g.calendario} — no aparece en esta cuenta
+                </option>
+              )}
+              {g.calendarios.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nombre}
+                  {c.principal ? " (agenda principal)" : ""}
+                </option>
+              ))}
+            </select>
+            {guardando && <Loader2 size={16} className="animate-spin text-muted-foreground self-center" />}
+          </div>
+
+          {/* El aviso solo cuando de verdad aplica. Repetirlo cuando ya hay un
+              calendario propio es ruido que se aprende a ignorar. */}
+          {g.calendarios.find((c) => c.id === g.calendario)?.principal !== false && (
+            <p className="text-[11px] text-muted-foreground leading-relaxed flex gap-1.5 items-start">
+              <AlertTriangle size={12} className="shrink-0 mt-0.5 text-amber-500" />
+              Está usando la agenda principal de la cuenta. Si la otra línea de negocio usa la misma, las citas
+              de las dos se mezclan. Crea un calendario aparte en Google y elígelo aquí.
+            </p>
+          )}
+        </div>
       )}
 
       {g?.motivo && (

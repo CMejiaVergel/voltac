@@ -302,6 +302,8 @@ export interface EjemploTono {
 export interface Ajustes {
   pausado: boolean;
   modelo: string;
+  /** Calendario de Google donde el asistente agenda. Vacio = el del .env. */
+  calendarioId: string;
   temperatura: number;
   maxTokens: number;
   debounceSegundos: number;
@@ -468,6 +470,8 @@ export interface EstadoGoogle {
   /** Qué cuenta, no solo si hay una. En esa agenda caen las reuniones. */
   cuenta?: string;
   calendario: string;
+  /** Los de esa cuenta donde se puede escribir. Vacio si no esta conectado. */
+  calendarios: { id: string; nombre: string; principal: boolean }[];
   zona: string;
   /** A dónde mandar al navegador para autorizar. */
   urlConsentimiento?: string;

@@ -21,7 +21,12 @@ export default function AdminShell({ children }: { children: React.ReactNode }) 
      que esta pagina se renderice. Comprobarlo tambien en el cliente daba una
      falsa sensacion de proteccion —bastaba escribir la clave en localStorage—. */
 
-  if (pathname === "/admin/login") {
+  /* Pantallas que se sirven SIN el panel alrededor.
+     - El login, porque todavia no hay sesion que enmarcar.
+     - El retorno de Google, porque se abre en una pestana aparte y su unico
+       cometido es decir si quedo o no: rodearlo del menu completo invita a
+       seguir trabajando en una pestana que hay que cerrar. */
+  if (pathname === "/admin/login" || pathname === "/admin/ia-assistant/google") {
     return <>{children}</>;
   }
 
