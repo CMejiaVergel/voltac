@@ -10,17 +10,21 @@
  *  - `moderador`    quien produce contenido y campañas. Necesita métricas y
  *                   calendario; no le compete la información financiera ni los
  *                   datos personales de los prospectos.
+ *  - `asesor`       quien atiende prospectos. Necesita el CRM y el asistente
+ *                   —conversaciones, calendario, panel—; no le compete la
+ *                   contabilidad, ni el contenido, ni crear usuarios, ni
+ *                   cambiar cómo se comporta el asistente.
  *
- * Deliberadamente son tres y no un sistema de permisos por casilla. Un panel de
- * esta escala con permisos granulares se convierte en una pantalla de
+ * Deliberadamente son cuatro y no un sistema de permisos por casilla. Un panel
+ * de esta escala con permisos granulares se convierte en una pantalla de
  * configuración que nadie mantiene y que acaba concediendo de más por comodidad.
- * Tres roles se entienden de un vistazo y se auditan leyendo esta lista.
+ * Cuatro roles se entienden de un vistazo y se auditan leyendo esta lista.
  *
  * Este archivo no importa nada: lo usan por igual el proxy, la interfaz y las
  * rutas de API.
  */
 
-export const ROLES = ["propietario", "contador", "moderador"] as const;
+export const ROLES = ["propietario", "contador", "moderador", "asesor"] as const;
 
 export type Rol = (typeof ROLES)[number];
 
@@ -33,12 +37,15 @@ export const ROL_ETIQUETA: Record<Rol, string> = {
   propietario: "Propietario",
   contador: "Contabilidad",
   moderador: "Contenido y campañas",
+  asesor: "Asesor de ventas",
 };
 
 export const ROL_DESCRIPCION: Record<Rol, string> = {
   propietario: "Acceso completo a las dos líneas de negocio.",
   contador: "Contabilidad, calendario tributario y documentación de la empresa.",
   moderador: "Métricas, calendario de contenido, proyectos y noticias.",
+  asesor:
+    "Prospectos y asistente de WhatsApp: atiende conversaciones y agenda reuniones a su nombre.",
 };
 
 /**
@@ -52,6 +59,10 @@ export const INICIO: Record<Rol, string> = {
   propietario: "/admin",
   contador: "/admin/accounting",
   moderador: "/admin/contenido",
+  /* El asesor aterriza en el asistente y no en el CRM: lo primero que necesita
+     al abrir el panel es si alguien está esperando respuesta, no la lista
+     completa de prospectos. */
+  asesor: "/admin/ia-assistant",
 };
 
 export interface ReglaAcceso {
@@ -96,10 +107,15 @@ export const ACCESO: readonly ReglaAcceso[] = [
   { prefijo: "/admin/preview", roles: ["propietario", "moderador"] },
   { prefijo: "/admin/accounting", roles: ["propietario", "contador"] },
   { prefijo: "/admin/accounting/configuracion", roles: ["propietario"] },
-  /* Solo el propietario. Aquí se leen conversaciones enteras con prospectos y
-     se puede escribir en nombre de la empresa: es más de lo que le compete al
-     moderador, que por la misma razón tampoco entra al CRM. */
-  { prefijo: "/admin/ia-assistant", roles: ["propietario"] },
+  /* Propietario y asesor. Aquí se leen conversaciones enteras con prospectos y
+     se escribe en nombre de la empresa: es el trabajo del asesor, y es más de lo
+     que le compete al moderador —que por lo mismo tampoco entra al CRM—. */
+  { prefijo: "/admin/ia-assistant", roles: ["propietario", "asesor"] },
+  /* La configuración del comportamiento no: quien atiende conversaciones no
+     tiene por qué poder cambiar el modelo, la temperatura ni el tono con que
+     habla la empresa. */
+  { prefijo: "/admin/ia-assistant/configuracion", roles: ["propietario"] },
+  { prefijo: "/admin/leads", roles: ["propietario", "asesor"] },
 
   { prefijo: "/api/accounting", roles: ["propietario", "contador"] },
   { prefijo: "/api/usuarios", roles: ["propietario"] },

@@ -382,6 +382,23 @@ export async function getDB() {
       );
     `);
 
+    /*
+     * Datos del asesor. Se anaden con ALTER y no en el CREATE porque la tabla
+     * ya existe en produccion y IF NOT EXISTS no la modifica.
+     *
+     * `cargo` y `telefono` existen para que el asistente pueda presentarse con
+     * el nombre y el puesto de quien atiende, en vez de con uno fijo. Hasta
+     * ahora se presentaba siempre como la misma persona, lo cual deja de servir
+     * en cuanto atiende alguien mas.
+     */
+    const usuarioCols = (await db.all("PRAGMA sys.table_info(usuarios)")).map((c: any) => c.name);
+    if (!usuarioCols.includes('cargo'))
+      await db.exec("ALTER TABLE sys.usuarios ADD COLUMN cargo TEXT");
+    if (!usuarioCols.includes('telefono'))
+      await db.exec("ALTER TABLE sys.usuarios ADD COLUMN telefono TEXT");
+    if (!usuarioCols.includes('documento'))
+      await db.exec("ALTER TABLE sys.usuarios ADD COLUMN documento TEXT");
+
     const columns = await db.all("PRAGMA table_info(quotes)");
     const columnNames = columns.map(c => c.name);
     

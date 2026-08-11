@@ -59,6 +59,8 @@ const RUTAS = [
   "/admin",
   "/admin/leads",
   "/admin/ia-assistant",
+  "/admin/ia-assistant/conversaciones",
+  "/admin/ia-assistant/configuracion",
   "/admin/usuarios",
   "/admin/configuracion",
   "/admin/proyectos",
@@ -76,6 +78,7 @@ const CUENTAS = [
   ["prueba-propietario", "propietario"],
   ["prueba-contador", "contador"],
   ["prueba-moderador", "moderador"],
+  ["prueba-asesor", "asesor"],
 ];
 
 const db = await open({ filename: dbPath, driver: sqlite3.Database });

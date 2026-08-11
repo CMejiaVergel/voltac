@@ -31,9 +31,9 @@ export default function IaAssistantLayout({
   const pathname = usePathname();
 
   const navItems = [
-    { label: "Conversaciones", href: "/admin/ia-assistant", icon: <Inbox size={18} />, exact: true, listo: true },
+    { label: "Panel", href: "/admin/ia-assistant", icon: <LayoutDashboard size={18} />, exact: true, listo: true },
+    { label: "Conversaciones", href: "/admin/ia-assistant/conversaciones", icon: <Inbox size={18} />, listo: true },
     { label: "Calendario", href: "/admin/ia-assistant/calendario", icon: <CalendarDays size={18} />, listo: true },
-    { label: "Panel", href: "/admin/ia-assistant/panel", icon: <LayoutDashboard size={18} />, listo: true },
     { label: "Configuración", href: "/admin/ia-assistant/configuracion", icon: <Settings size={18} />, listo: true },
     { label: "Actividad", href: "/admin/ia-assistant/actividad", icon: <Activity size={18} />, listo: true },
   ];

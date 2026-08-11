@@ -399,7 +399,20 @@ export interface Metricas {
   leadsContactados: number;
   respuestasHumanas: number;
   herramientas: { nombre: string; veces: number }[];
-  porDia: { dia: string; turnos: number; costoUsd: number }[];
+  porDia: {
+    dia: string;
+    turnos: number;
+    costoUsd: number;
+    tokens: number;
+    entrantes: number;
+    citas: number;
+  }[];
+  /** A qué hora escribe la gente. 24 posiciones, hora de Colombia. */
+  porHora: { hora: number; mensajes: number }[];
+  /** Reparto de eventos por tipo: en qué se le va el tiempo al asistente. */
+  reparto: { tipo: string; veces: number }[];
+  /** Contactados → respondieron → agendaron. */
+  embudo: { etapa: string; cantidad: number }[];
   masCaras: { conversationId: string; turnos: number; costoUsd: number }[];
   saldoUsd?: number;
 }

@@ -2,16 +2,14 @@ import * as React from "react";
 import { asistenteDisponible } from "../cliente";
 import { verticalConfig } from "../../vertical";
 import IaAssistantLayout from "./layout";
-import Bandeja from "./Bandeja";
+import Panel from "./Panel";
 
 /**
- * Página del módulo. La monta cada aplicación con un puente de una línea.
+ * La portada del módulo es el panel, no la bandeja.
  *
- * Si esta línea de negocio tiene asistente se resuelve **en el servidor**,
- * porque depende del entorno del proceso y no del navegador. De ahí que Energy
- * pueda montar exactamente este mismo código y ver el módulo completo pero
- * inerte, sin ninguna rama de "si es Energy" en ningún sitio: la diferencia
- * está en la configuración, no en el código.
+ * Al abrir esto la pregunta no es "qué dijo el último cliente" sino "hay algo
+ * que atender". El panel responde eso y lleva a donde corresponda; entrar
+ * directo a una lista de conversaciones obliga a deducirlo leyendo.
  */
 export default function IaAssistantPage() {
   const disponible = asistenteDisponible();
@@ -19,7 +17,7 @@ export default function IaAssistantPage() {
 
   return (
     <IaAssistantLayout disponible={disponible} nombreLinea={linea.name}>
-      <Bandeja disponible={disponible} />
+      <Panel disponible={disponible} />
     </IaAssistantLayout>
   );
 }

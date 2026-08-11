@@ -19,6 +19,16 @@ export interface Usuario {
   activo: boolean;
   creado_en: string;
   ultimo_acceso: string | null;
+  /**
+   * Puesto con el que se presenta ante un cliente.
+   *
+   * No es decorativo: cuando un asesor atiende una conversación, el asistente
+   * habla con SU nombre y SU cargo. Hasta ahora se presentaba siempre como la
+   * misma persona, lo cual deja de servir en cuanto atiende alguien más.
+   */
+  cargo: string | null;
+  telefono: string | null;
+  documento: string | null;
 }
 
 /**
@@ -144,8 +154,19 @@ export async function listarUsuarios(): Promise<Usuario[]> {
   await asegurarSemilla();
   const db = await getDB();
   const filas = await db.all<
-    { id: number; usuario: string; nombre: string; rol: string; activo: number; creado_en: string; ultimo_acceso: string | null }[]
-  >(`SELECT id, usuario, nombre, rol, activo, creado_en, ultimo_acceso
+    {
+      id: number;
+      usuario: string;
+      nombre: string;
+      rol: string;
+      activo: number;
+      creado_en: string;
+      ultimo_acceso: string | null;
+      cargo: string | null;
+      telefono: string | null;
+      documento: string | null;
+    }[]
+  >(`SELECT id, usuario, nombre, rol, activo, creado_en, ultimo_acceso, cargo, telefono, documento
      FROM sys.usuarios ORDER BY rol, usuario`);
 
   return filas
@@ -158,6 +179,9 @@ export async function crearUsuario(datos: {
   nombre: string;
   password: string;
   rol: Rol;
+  cargo?: string;
+  telefono?: string;
+  documento?: string;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   const usuario = datos.usuario.trim();
   if (usuario.length < 3) return { ok: false, error: "El usuario debe tener al menos 3 caracteres." };
@@ -170,10 +194,40 @@ export async function crearUsuario(datos: {
   if (existe) return { ok: false, error: "Ese usuario ya existe." };
 
   await db.run(
-    `INSERT INTO sys.usuarios (usuario, nombre, password_hash, rol) VALUES (?, ?, ?, ?)`,
-    [usuario, datos.nombre.trim(), await hashPassword(datos.password), datos.rol],
+    `INSERT INTO sys.usuarios (usuario, nombre, password_hash, rol, cargo, telefono, documento)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [
+      usuario,
+      datos.nombre.trim(),
+      await hashPassword(datos.password),
+      datos.rol,
+      datos.cargo?.trim() || null,
+      datos.telefono?.trim() || null,
+      datos.documento?.trim() || null,
+    ],
   );
   return { ok: true };
+}
+
+/** Actualiza los datos con que un asesor se presenta ante un cliente. */
+export async function actualizarDatos(
+  id: number,
+  datos: { nombre?: string; cargo?: string; telefono?: string; documento?: string },
+): Promise<boolean> {
+  const campos: string[] = [];
+  const valores: unknown[] = [];
+  for (const k of ["nombre", "cargo", "telefono", "documento"] as const) {
+    const v = datos[k];
+    if (v === undefined) continue;
+    campos.push(`${k} = ?`);
+    valores.push(v.trim() || null);
+  }
+  if (!campos.length) return false;
+
+  const db = await getDB();
+  valores.push(id);
+  const r = await db.run(`UPDATE sys.usuarios SET ${campos.join(", ")} WHERE id = ?`, valores);
+  return (r.changes ?? 0) > 0;
 }
 
 export async function cambiarPassword(id: number, password: string): Promise<boolean> {
