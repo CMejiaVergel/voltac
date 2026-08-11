@@ -74,9 +74,15 @@ export default async function GoogleCallbackPage({
         </>
       )}
 
+      {/* Esto se abre en una pestaña aparte, así que lo normal es cerrarla y
+          volver a la que ya estaba abierta —que se actualiza sola al recuperar
+          el foco—. El enlace queda por si alguien llegó aquí de otra forma. */}
+      <p className="text-[12px] text-muted-foreground mt-5">
+        Ya puedes cerrar esta pestaña.
+      </p>
       <Link
         href="/admin/ia-assistant/configuracion"
-        className="inline-block mt-6 px-4 py-2 rounded-lg border border-border text-sm font-semibold hover:bg-muted transition-colors"
+        className="inline-block mt-3 px-4 py-2 rounded-lg border border-border text-sm font-semibold hover:bg-muted transition-colors"
       >
         Volver a Configuración
       </Link>

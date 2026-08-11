@@ -40,6 +40,25 @@ export function Google() {
     void refrescar();
   }, [refrescar]);
 
+  /*
+   * Al volver a esta pestaña, comprobar de nuevo.
+   *
+   * La autorización ocurre en OTRA pestaña, así que esta no se entera de nada:
+   * la persona autoriza, vuelve, y sigue leyendo "Sin conectar" hasta que
+   * recarga a mano. Es el momento exacto en que uno cree que no funcionó.
+   */
+  React.useEffect(() => {
+    const alVolver = () => {
+      if (document.visibilityState === "visible") void refrescar();
+    };
+    document.addEventListener("visibilitychange", alVolver);
+    window.addEventListener("focus", alVolver);
+    return () => {
+      document.removeEventListener("visibilitychange", alVolver);
+      window.removeEventListener("focus", alVolver);
+    };
+  }, [refrescar]);
+
   async function copiar(texto: string) {
     try {
       await navigator.clipboard.writeText(texto);
@@ -129,6 +148,12 @@ export function Google() {
         {g?.urlConsentimiento && (
           <a
             href={g.urlConsentimiento}
+            /* En pestaña nueva: autorizar en Google son varios pasos y a veces
+               hay que cambiar de cuenta. Hacerlo en la misma pestaña obliga a
+               abandonar la pantalla de configuración a medias, y si algo sale
+               mal se pierde el sitio donde uno estaba. */
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-white text-xs font-semibold hover:opacity-90 transition-opacity shrink-0"
           >
             <ExternalLink size={14} />

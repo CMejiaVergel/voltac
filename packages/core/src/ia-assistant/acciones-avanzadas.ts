@@ -134,9 +134,32 @@ export async function revincularLineaConfirmada(
  * Nginx hay que mirar `x-forwarded-*`, o saldría `http` y el puerto interno.
  */
 async function urlDeRetorno(): Promise<string> {
+  /* Escotilla de emergencia. Si la deducción no acierta con la infraestructura
+     de turno, se fija a mano y se acabó la discusión. Vale la pena tenerla:
+     una URL que no cuadra por un carácter deja la autorización imposible y sin
+     forma de forzarla. */
+  const fijada = process.env.ASISTENTE_OAUTH_REDIRECT?.trim();
+  if (fijada) return fijada.replace(/\/+$/, "");
+
   const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+
+  /* `x-forwarded-host` puede traer varios valores separados por comas cuando
+     hay más de un proxy delante. El primero es el que vio el navegador. */
+  const crudo = (h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000").split(",")[0].trim();
+  const proto = (h.get("x-forwarded-proto") ?? "").split(",")[0].trim() ||
+    (crudo.startsWith("localhost") || crudo.startsWith("127.0.0.1") ? "http" : "https");
+
+  /* Y puede traer el puerto pegado. Nginx configurado con `$host:$server_port`
+     produce "energy.voltac.com.co:443", y entonces la URL sale como
+     `https://energy.voltac.com.co:443/...`, que para Google NO es la misma que
+     `https://energy.voltac.com.co/...`. Es exactamente el tipo de diferencia
+     invisible que produce un redirect_uri_mismatch: el puerto por defecto de
+     cada esquema sobra siempre. */
+  const puertoPorDefecto = proto === "https" ? ":443" : ":80";
+  const host = crudo.endsWith(puertoPorDefecto)
+    ? crudo.slice(0, -puertoPorDefecto.length)
+    : crudo;
+
   return `${proto}://${host}/admin/ia-assistant/google`;
 }
 
