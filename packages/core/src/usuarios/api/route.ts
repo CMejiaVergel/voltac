@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cambiarEstado, cambiarPassword, crearUsuario, listarUsuarios, auditar } from "../index";
 import { sesionActual } from "../../sesion";
-import { esRol } from "../../roles";
+import { esMarca, esRol } from "../../roles";
 import { currentVertical } from "../../vertical";
 
 /**
@@ -42,6 +42,7 @@ export async function POST(req: Request) {
     nombre: String(datos.nombre ?? ""),
     password: String(datos.password ?? ""),
     rol: datos.rol,
+    marca: esMarca(datos.marca) ? datos.marca : "ambas",
   });
 
   if (!resultado.ok) {
@@ -53,7 +54,7 @@ export async function POST(req: Request) {
     rol: sesion.rol,
     vertical: currentVertical(),
     accion: "usuario_creado",
-    detalle: `${datos.usuario} (${datos.rol})`,
+    detalle: `${datos.usuario} (${datos.rol}${datos.marca && datos.marca !== "ambas" ? `, ${datos.marca}` : ""})`,
   });
 
   return NextResponse.json({ success: true });

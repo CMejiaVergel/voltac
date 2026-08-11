@@ -427,6 +427,20 @@ export async function getDB() {
       await db.exec("ALTER TABLE sys.usuarios ADD COLUMN telefono TEXT");
     if (!usuarioCols.includes('documento'))
       await db.exec("ALTER TABLE sys.usuarios ADD COLUMN documento TEXT");
+    /*
+     * `marca` limita una cuenta a una linea de negocio.
+     *
+     * La tabla de usuarios es UNA y las dos aplicaciones la comparten, asi que
+     * hasta ahora cualquier cuenta entraba a los dos paneles. Eso valia cuando
+     * todos los puestos eran de la empresa entera; deja de valer con el primero
+     * que es de una marca: quien lleva prospectos solares no tiene por que ver
+     * el embudo comercial del negocio de software.
+     *
+     * El valor por defecto es 'ambas', que es lo que tenian todas las cuentas
+     * existentes: la migracion no le quita el acceso a nadie.
+     */
+    if (!usuarioCols.includes('marca'))
+      await db.exec("ALTER TABLE sys.usuarios ADD COLUMN marca TEXT NOT NULL DEFAULT 'ambas'");
 
     const columns = await db.all("PRAGMA table_info(quotes)");
     const columnNames = columns.map(c => c.name);

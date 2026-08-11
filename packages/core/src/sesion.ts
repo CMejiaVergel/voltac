@@ -7,7 +7,8 @@ import {
   verifySession,
   type SessionPayload,
 } from "./auth";
-import { autenticar, auditar } from "./usuarios";
+import { alcanzaMarca, MARCA_ETIQUETA } from "./roles";
+import { autenticar, auditar, estadoDeCuenta } from "./usuarios";
 import { currentVertical } from "./vertical";
 
 /**
@@ -106,6 +107,33 @@ export async function iniciarSesion(formData: FormData): Promise<{ error?: strin
   // Un acierto limpia el historial: quien ya demostró conocer la clave no
   // debería quedar bloqueado por haberse equivocado antes.
   intentos.delete(ip);
+
+  /*
+   * Las credenciales son válidas, pero ¿es esta su marca?
+   *
+   * El proxy ya lo comprueba en cada petición, así que sin esto la persona
+   * entraría "bien" y a continuación recibiría 404 en todo, sin saber por qué.
+   * Aquí se le dice, porque no es un fallo de seguridad sino de sitio: la
+   * cuenta existe y la clave es correcta, solo que este no es su panel.
+   *
+   * No se registra como acceso fallido ni cuenta para el bloqueo por fuerza
+   * bruta: quien acertó la contraseña no es un atacante probando claves.
+   */
+  const cuenta = await estadoDeCuenta(acceso.usuario);
+  const vertical = currentVertical();
+  if (cuenta && !alcanzaMarca(cuenta.marca, vertical)) {
+    await auditar({
+      usuario: acceso.usuario,
+      rol: acceso.rol,
+      vertical,
+      accion: "acceso_marca_incorrecta",
+      detalle: `la cuenta es de ${MARCA_ETIQUETA[cuenta.marca]}`,
+      ip,
+    });
+    return {
+      error: `Esta cuenta es de ${MARCA_ETIQUETA[cuenta.marca]}. Entra por el panel de esa línea de negocio.`,
+    };
+  }
 
   const token = await signSession(acceso.usuario, acceso.rol, config.secret);
   const store = await cookies();

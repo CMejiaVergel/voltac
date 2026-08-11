@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIE, adminConfig, verifySession } from "./auth";
-import { INICIO, rolesPara } from "./roles";
+import { alcanzaMarca, INICIO, rolesPara } from "./roles";
 import { estadoDeCuenta } from "./usuarios";
+import { currentVertical } from "./vertical";
 
 /**
  * Portero único de las dos líneas de negocio.
@@ -99,6 +100,20 @@ export async function proxy(request: NextRequest) {
    */
   const cuenta = await estadoDeCuenta(sesion.sub);
   if (!cuenta || !cuenta.activo || cuenta.rol !== sesion.rol) return sinAcceso();
+
+  /*
+   * Y que la cuenta sea de ESTA marca.
+   *
+   * La tabla de usuarios es una sola y las dos aplicaciones la comparten, asi
+   * que sin esta comprobacion una cuenta creada para Energy entra igual al
+   * panel de Systems y ve su embudo comercial completo. No es una fuga
+   * hipotetica: los dos paneles corren el mismo codigo contra la misma tabla de
+   * identidad, y lo unico que los separa es en que puerto escucha cada uno.
+   *
+   * Se comprueba aqui y no solo al entrar porque una cuenta puede cambiar de
+   * marca con la sesion ya abierta, igual que puede cambiar de rol.
+   */
+  if (!alcanzaMarca(cuenta.marca, currentVertical())) return sinAcceso();
 
   if (!permitidos.includes(sesion.rol)) {
     // El login siempre manda a /admin. Quien no sea propietario no tiene

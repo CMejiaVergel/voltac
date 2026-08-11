@@ -3,7 +3,15 @@
 import * as React from "react";
 import { UserPlus, KeyRound, Power, ShieldCheck } from "lucide-react";
 import { cn } from "../../utils";
-import { ROLES, ROL_DESCRIPCION, ROL_ETIQUETA, type Rol } from "../../roles";
+import {
+  MARCAS,
+  MARCA_ETIQUETA,
+  ROLES,
+  ROL_DESCRIPCION,
+  ROL_ETIQUETA,
+  type Marca,
+  type Rol,
+} from "../../roles";
 
 /**
  * Alta y baja de cuentas del panel.
@@ -23,12 +31,19 @@ interface Usuario {
   usuario: string;
   nombre: string;
   rol: Rol;
+  marca: Marca;
   activo: boolean;
   creado_en: string;
   ultimo_acceso: string | null;
 }
 
-const vacio = { usuario: "", nombre: "", password: "", rol: "moderador" as Rol };
+const vacio = {
+  usuario: "",
+  nombre: "",
+  password: "",
+  rol: "moderador" as Rol,
+  marca: "ambas" as Marca,
+};
 
 export default function UsuariosPage() {
   const [usuarios, setUsuarios] = React.useState<Usuario[]>([]);
@@ -181,9 +196,37 @@ export default function UsuariosPage() {
               ))}
             </select>
           </label>
+
+          {/* La marca es tan determinante como el rol y por eso va al lado.
+              Una cuenta limitada a Energy no entra al panel de Systems: la
+              tabla de usuarios es una sola y sin esto serviria en los dos. */}
+          <label className="space-y-1">
+            <span className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Marca
+            </span>
+            <select
+              value={form.marca}
+              onChange={(e) => setForm({ ...form, marca: e.target.value as Marca })}
+              disabled={form.rol === "propietario"}
+              className="w-full border border-border rounded-xl px-4 py-2.5 bg-background disabled:opacity-50"
+            >
+              {MARCAS.map((m) => (
+                <option key={m} value={m}>
+                  {MARCA_ETIQUETA[m]}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
 
         <p className="text-xs text-muted-foreground">{ROL_DESCRIPCION[form.rol]}</p>
+        <p className="text-xs text-muted-foreground">
+          {form.rol === "propietario"
+            ? "El propietario dirige la empresa, no una marca: siempre ve las dos."
+            : form.marca === "ambas"
+              ? "Podra entrar a los paneles de las dos lineas de negocio."
+              : `Solo podra entrar al panel de ${MARCA_ETIQUETA[form.marca]}. En el otro, sus credenciales seran validas pero no le dejaran pasar.`}
+        </p>
 
         <button
           type="submit"
@@ -224,6 +267,11 @@ export default function UsuariosPage() {
                       {u.rol === "propietario" && <ShieldCheck size={14} />}
                       {ROL_ETIQUETA[u.rol]}
                     </span>
+                    {u.marca !== "ambas" && (
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
+                        {MARCA_ETIQUETA[u.marca]}
+                      </p>
+                    )}
                   </td>
                   <td className="px-6 py-4 text-muted-foreground">{u.ultimo_acceso ?? "nunca"}</td>
                   <td className="px-6 py-4">

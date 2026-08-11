@@ -14,8 +14,15 @@
  *                   —conversaciones, calendario, panel—; no le compete la
  *                   contabilidad, ni el contenido, ni crear usuarios, ni
  *                   cambiar cómo se comporta el asistente.
+ *  - `operador`     quien lleva la operación de una línea de negocio. Es un
+ *                   asesor con el tablero general y el dimensionamiento: ve
+ *                   cómo va el negocio, no solo la conversación que tiene
+ *                   delante. No le compete la contabilidad, ni el contenido,
+ *                   ni crear usuarios, ni cambiar el comportamiento del
+ *                   asistente. Va siempre acompañado de una marca: un operador
+ *                   de Energy no entra al panel de Systems.
  *
- * Deliberadamente son cuatro y no un sistema de permisos por casilla. Un panel
+ * Deliberadamente son cinco y no un sistema de permisos por casilla. Un panel
  * de esta escala con permisos granulares se convierte en una pantalla de
  * configuración que nadie mantiene y que acaba concediendo de más por comodidad.
  * Cuatro roles se entienden de un vistazo y se auditan leyendo esta lista.
@@ -24,9 +31,42 @@
  * rutas de API.
  */
 
-export const ROLES = ["propietario", "contador", "moderador", "asesor"] as const;
+export const ROLES = ["propietario", "contador", "moderador", "asesor", "operador"] as const;
 
 export type Rol = (typeof ROLES)[number];
+
+/**
+ * A qué marca pertenece una cuenta.
+ *
+ * Los roles dicen QUÉ puede hacer alguien; esto dice DÓNDE. Hacían falta las
+ * dos cosas en cuanto apareció el primer puesto que es de una línea de negocio
+ * y no de la empresa entera.
+ *
+ * La tabla de usuarios es una sola y las dos aplicaciones la comparten, así que
+ * sin este campo una cuenta creada para Energy entraría igual al panel de
+ * Systems y vería su embudo comercial completo. Quien lleva prospectos solares
+ * no tiene por qué ver los del negocio de software.
+ *
+ * `ambas` es el valor por defecto y es lo que tienen todas las cuentas
+ * anteriores: nadie pierde acceso por este cambio.
+ */
+export const MARCAS = ["ambas", "systems", "energy"] as const;
+export type Marca = (typeof MARCAS)[number];
+
+export function esMarca(valor: unknown): valor is Marca {
+  return typeof valor === "string" && (MARCAS as readonly string[]).includes(valor);
+}
+
+export const MARCA_ETIQUETA: Record<Marca, string> = {
+  ambas: "Las dos marcas",
+  systems: "Voltac Systems",
+  energy: "Voltac Energy",
+};
+
+/** Si una cuenta puede entrar al panel de esta línea de negocio. */
+export function alcanzaMarca(marca: Marca, vertical: string): boolean {
+  return marca === "ambas" || marca === vertical;
+}
 
 export function esRol(valor: unknown): valor is Rol {
   return typeof valor === "string" && (ROLES as readonly string[]).includes(valor);
@@ -38,6 +78,7 @@ export const ROL_ETIQUETA: Record<Rol, string> = {
   contador: "Contabilidad",
   moderador: "Contenido y campañas",
   asesor: "Asesor de ventas",
+  operador: "Operador",
 };
 
 export const ROL_DESCRIPCION: Record<Rol, string> = {
@@ -46,6 +87,8 @@ export const ROL_DESCRIPCION: Record<Rol, string> = {
   moderador: "Métricas, calendario de contenido, proyectos y noticias.",
   asesor:
     "Prospectos y asistente de WhatsApp: atiende conversaciones y agenda reuniones a su nombre.",
+  operador:
+    "Operación de una línea de negocio: tablero, prospectos, dimensionamiento y asistente de WhatsApp.",
 };
 
 /**
@@ -63,6 +106,9 @@ export const INICIO: Record<Rol, string> = {
      al abrir el panel es si alguien está esperando respuesta, no la lista
      completa de prospectos. */
   asesor: "/admin/ia-assistant",
+  /* El operador sí tiene tablero, y es lo primero que necesita al entrar:
+     cómo va el negocio, no qué dijo el último cliente. */
+  operador: "/admin",
 };
 
 export interface ReglaAcceso {
@@ -103,7 +149,17 @@ export interface ReglaAcceso {
  * esa página.
  */
 export const ACCESO: readonly ReglaAcceso[] = [
-  { prefijo: "/admin", roles: ["propietario"] },
+  /* El tablero general. Al ser el prefijo mas corto, tambien es la regla que
+     recoge todo lo que cuelgue de /admin y no este listado abajo: por eso
+     agregar un rol AQUI le concede de mas si algo se olvida. Cuando entro el
+     operador hubo que declarar de forma explicita /admin/usuarios y
+     /admin/configuracion, que hasta entonces se protegian solos por caer en
+     esta linea. */
+  { prefijo: "/admin", roles: ["propietario", "operador"] },
+  /* Crear cuentas y cambiar credenciales de la empresa es del dueno y de nadie
+     mas. Antes no hacia falta escribirlo. */
+  { prefijo: "/admin/usuarios", roles: ["propietario"] },
+  { prefijo: "/admin/configuracion", roles: ["propietario"] },
   { prefijo: "/admin/proyectos", roles: ["propietario", "moderador"] },
   { prefijo: "/admin/news", roles: ["propietario", "moderador"] },
   { prefijo: "/admin/analytics", roles: ["propietario", "moderador"] },
@@ -114,7 +170,7 @@ export const ACCESO: readonly ReglaAcceso[] = [
   /* Propietario y asesor. Aquí se leen conversaciones enteras con prospectos y
      se escribe en nombre de la empresa: es el trabajo del asesor, y es más de lo
      que le compete al moderador —que por lo mismo tampoco entra al CRM—. */
-  { prefijo: "/admin/ia-assistant", roles: ["propietario", "asesor"] },
+  { prefijo: "/admin/ia-assistant", roles: ["propietario", "asesor", "operador"] },
   /* La configuración del comportamiento no: quien atiende conversaciones no
      tiene por qué poder cambiar el modelo, la temperatura ni el tono con que
      habla la empresa. */
@@ -124,11 +180,11 @@ export const ACCESO: readonly ReglaAcceso[] = [
      configuración: quien atiende conversaciones no cambia con qué credenciales
      opera la empresa. */
   { prefijo: "/admin/ia-assistant/google", roles: ["propietario"] },
-  { prefijo: "/admin/leads", roles: ["propietario", "asesor"] },
+  { prefijo: "/admin/leads", roles: ["propietario", "asesor", "operador"] },
   /* Dimensionamiento existe solo en Energy. Lo alcanzan las mismas personas que
      atienden prospectos, porque es la herramienta con la que se les responde
      cuánto cuesta: separarla del CRM obligaría a pedirle el cálculo a otro. */
-  { prefijo: "/admin/dimensionamiento", roles: ["propietario", "asesor"] },
+  { prefijo: "/admin/dimensionamiento", roles: ["propietario", "asesor", "operador"] },
 
   { prefijo: "/api/accounting", roles: ["propietario", "contador"] },
   { prefijo: "/api/usuarios", roles: ["propietario"] },

@@ -1,6 +1,6 @@
 import { getDB } from "../db";
 import { adminConfig, hashPassword, hashObsoleto, verifyPassword } from "../auth";
-import { esRol, type Rol } from "../roles";
+import { esMarca, esRol, type Marca, type Rol } from "../roles";
 
 /**
  * Cuentas del panel.
@@ -28,6 +28,15 @@ export interface Usuario {
    */
   cargo: string | null;
   telefono: string | null;
+  /**
+   * A que linea de negocio pertenece la cuenta.
+   *
+   * `ambas` es lo normal para quien trabaja en la empresa entera. Limitarla a
+   * una marca es lo que hace que un operador de Energy no pueda entrar al panel
+   * de Systems: la tabla de usuarios es una sola y las dos aplicaciones la
+   * comparten, asi que sin este campo la cuenta serviria en los dos sitios.
+   */
+  marca: Marca;
   documento: string | null;
 }
 
@@ -140,14 +149,20 @@ export async function confirmarPassword(usuario: string, password: string): Prom
  */
 export async function estadoDeCuenta(
   usuario: string,
-): Promise<{ rol: Rol; activo: boolean } | null> {
+): Promise<{ rol: Rol; activo: boolean; marca: Marca } | null> {
   const db = await getDB();
-  const fila = await db.get<{ rol: string; activo: number }>(
-    "SELECT rol, activo FROM sys.usuarios WHERE usuario = ?",
+  const fila = await db.get<{ rol: string; activo: number; marca: string | null }>(
+    "SELECT rol, activo, marca FROM sys.usuarios WHERE usuario = ?",
     [usuario],
   );
   if (!fila || !esRol(fila.rol)) return null;
-  return { rol: fila.rol, activo: Boolean(fila.activo) };
+  // Una marca ilegible se trata como la mas restrictiva que no rompe nada:
+  // 'ambas' es lo que tenian las cuentas anteriores a esta columna.
+  return {
+    rol: fila.rol,
+    activo: Boolean(fila.activo),
+    marca: esMarca(fila.marca) ? fila.marca : "ambas",
+  };
 }
 
 export async function listarUsuarios(): Promise<Usuario[]> {
@@ -165,13 +180,19 @@ export async function listarUsuarios(): Promise<Usuario[]> {
       cargo: string | null;
       telefono: string | null;
       documento: string | null;
+      marca: string | null;
     }[]
-  >(`SELECT id, usuario, nombre, rol, activo, creado_en, ultimo_acceso, cargo, telefono, documento
+  >(`SELECT id, usuario, nombre, rol, activo, creado_en, ultimo_acceso, cargo, telefono, documento, marca
      FROM sys.usuarios ORDER BY rol, usuario`);
 
   return filas
     .filter((f) => esRol(f.rol))
-    .map((f) => ({ ...f, rol: f.rol as Rol, activo: Boolean(f.activo) }));
+    .map((f) => ({
+      ...f,
+      rol: f.rol as Rol,
+      activo: Boolean(f.activo),
+      marca: esMarca(f.marca) ? f.marca : ("ambas" as Marca),
+    }));
 }
 
 export async function crearUsuario(datos: {
@@ -179,6 +200,7 @@ export async function crearUsuario(datos: {
   nombre: string;
   password: string;
   rol: Rol;
+  marca?: Marca;
   cargo?: string;
   telefono?: string;
   documento?: string;
@@ -189,18 +211,26 @@ export async function crearUsuario(datos: {
     return { ok: false, error: "La contraseña debe tener al menos 10 caracteres." };
   if (!esRol(datos.rol)) return { ok: false, error: "Rol desconocido." };
 
+  const marca: Marca = esMarca(datos.marca) ? datos.marca : "ambas";
+  /* El propietario dirige la empresa, no una marca. Permitir un propietario
+     limitado a una linea dejaria la plataforma sin nadie que la vea entera. */
+  if (datos.rol === "propietario" && marca !== "ambas") {
+    return { ok: false, error: "El propietario no se puede limitar a una sola marca." };
+  }
+
   const db = await getDB();
   const existe = await db.get("SELECT 1 FROM sys.usuarios WHERE usuario = ?", [usuario]);
   if (existe) return { ok: false, error: "Ese usuario ya existe." };
 
   await db.run(
-    `INSERT INTO sys.usuarios (usuario, nombre, password_hash, rol, cargo, telefono, documento)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO sys.usuarios (usuario, nombre, password_hash, rol, marca, cargo, telefono, documento)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       usuario,
       datos.nombre.trim(),
       await hashPassword(datos.password),
       datos.rol,
+      marca,
       datos.cargo?.trim() || null,
       datos.telefono?.trim() || null,
       datos.documento?.trim() || null,
@@ -212,7 +242,7 @@ export async function crearUsuario(datos: {
 /** Actualiza los datos con que un asesor se presenta ante un cliente. */
 export async function actualizarDatos(
   id: number,
-  datos: { nombre?: string; cargo?: string; telefono?: string; documento?: string },
+  datos: { nombre?: string; cargo?: string; telefono?: string; documento?: string; marca?: Marca },
 ): Promise<boolean> {
   const campos: string[] = [];
   const valores: unknown[] = [];
@@ -221,6 +251,12 @@ export async function actualizarDatos(
     if (v === undefined) continue;
     campos.push(`${k} = ?`);
     valores.push(v.trim() || null);
+  }
+  /* La marca va aparte porque no es un texto libre y no admite nulo: una cuenta
+     sin marca no sabria a que panel pertenece. */
+  if (datos.marca !== undefined && esMarca(datos.marca)) {
+    campos.push("marca = ?");
+    valores.push(datos.marca);
   }
   if (!campos.length) return false;
 
