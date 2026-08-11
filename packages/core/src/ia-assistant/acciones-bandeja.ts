@@ -9,6 +9,8 @@ import {
   verConversacion,
   type ConversacionDetalle,
   type ConversacionResumen,
+  estadoAsistente,
+  type EstadoAsistente,
   type Novedades,
 } from "./cliente";
 
@@ -62,4 +64,8 @@ export async function reactivarAsistente(id: string): Promise<Resultado<{ ok: bo
 
 export async function consultarNovedades(desde: number): Promise<Resultado<Novedades>> {
   return intentar(() => novedades(desde));
+}
+
+export async function cargarEstado(): Promise<Resultado<EstadoAsistente>> {
+  return intentar(() => estadoAsistente());
 }

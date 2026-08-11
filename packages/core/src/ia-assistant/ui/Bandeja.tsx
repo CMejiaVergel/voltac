@@ -405,9 +405,14 @@ export default function Bandeja({ disponible }: { disponible: boolean }) {
                   <div className="text-sm text-red-800">
                     <p className="font-bold">Borrar toda la conversación con {detalle.nombre ?? detalle.waId}</p>
                     <p className="text-xs mt-1">
-                      Se van los {detalle.mensajes.length} mensajes, la ficha con sus datos y su
-                      rastro en la actividad. Si viene de un lead, vuelve a la cola como si nunca
-                      se le hubiera escrito. <strong>No se puede deshacer.</strong>
+                      Se van los {detalle.mensajes.length} mensajes y la ficha con sus datos. Si
+                      viene de un lead, vuelve a la cola como si nunca se le hubiera escrito.{" "}
+                      <strong>No se puede deshacer.</strong>
+                    </p>
+                    <p className="text-xs mt-1">
+                      <strong>El gasto sí se conserva.</strong> Los tokens ya se consumieron, así
+                      que el costo sigue contando en Actividad, pero sin nada que identifique a
+                      esta persona.
                     </p>
                     <p className="text-xs mt-1">
                       Los mensajes seguirán en el WhatsApp de la persona: esto borra lo que sabe

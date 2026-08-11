@@ -174,10 +174,21 @@ export function enviarMensaje(lead: LeadParaAsistente, texto: string): Promise<R
 export interface EstadoAsistente {
   canal: string;
   tenant: string;
+  modelo: string;
   pausado: boolean;
   leads: number;
   conversaciones: number;
+  /** Escribieron y nadie ha contestado. */
   esperandoRespuesta: number;
+  /** Leads que todavía no se han contactado. */
+  leadsEnCola: number;
+  /** Con un escalamiento vigente. */
+  escalados: number;
+  /** Donde alguien tomó el control y el asistente calla. */
+  enManosDeUnaPersona: number;
+  reunionesAgendadas: number;
+  /** Con movimiento en las últimas 24 horas. */
+  activas: number;
 }
 
 export function estadoAsistente(): Promise<EstadoAsistente> {
@@ -414,7 +425,8 @@ export function traerModelos(): Promise<{ modelos: ModeloDisponible[] }> {
 /** Borra una conversación entera. No se puede deshacer. */
 export function limpiarConversacion(id: string): Promise<{
   turnos: number;
-  eventos: number;
+  /** El gasto no se borra: se conserva sin nada que identifique a la persona. */
+  eventosAnonimizados: number;
   ficha: boolean;
   leadReiniciado?: string;
 }> {

@@ -58,7 +58,7 @@ export async function limpiarConversacionConfirmada(
   conversationId: string,
   pass: string,
   quien: string,
-): Promise<Resultado<{ turnos: number; eventos: number; leadReiniciado?: string }>> {
+): Promise<Resultado<{ turnos: number; eventosAnonimizados: number; leadReiniciado?: string }>> {
   const confirmacion = await confirmarAccionSensible(
     pass,
     "conversacion_whatsapp_borrada",
