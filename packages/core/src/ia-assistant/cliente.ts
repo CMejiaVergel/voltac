@@ -435,6 +435,34 @@ export function traerModelos(): Promise<{ modelos: ModeloDisponible[] }> {
   return pedir("/crm/modelos", { espera: ESPERA_MS.modelo });
 }
 
+export interface Vinculacion {
+  /** `false` en la Cloud API de Meta, que no se pareja con QR. */
+  soportado: boolean;
+  estado: "iniciando" | "esperando-qr" | "conectando" | "conectado" | "desvinculado" | "caido";
+  /** Imagen lista para pintar. Llega ya como data URI desde el asistente. */
+  qrImagen?: string;
+  /** Lo que le queda de vida al QR. WhatsApp lo rota cada 20 segundos. */
+  qrValidoSeg?: number;
+  numero?: string;
+  nombre?: string;
+  conectadoDesde?: number;
+  detalle?: string;
+}
+
+export function traerVinculacion(): Promise<Vinculacion> {
+  return pedir("/crm/vinculacion");
+}
+
+/**
+ * Desvincula la línea y arranca un pareo nuevo.
+ *
+ * Deja al asistente mudo hasta que alguien escanee el QR. La contraseña se
+ * comprueba antes, en el sitio web; aquí ya llega autorizado.
+ */
+export function revincularLinea(): Promise<{ ok: true; archivadoEn?: string }> {
+  return pedir("/crm/vinculacion/revincular", { metodo: "POST" });
+}
+
 /** Borra una conversación entera. No se puede deshacer. */
 export function limpiarConversacion(id: string): Promise<{
   turnos: number;
