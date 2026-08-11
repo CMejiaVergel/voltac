@@ -22,6 +22,7 @@ import {
 import { cargarModelos } from "../acciones-avanzadas";
 import type { Ajustes, EjemploTono, ModeloDisponible } from "../cliente";
 import { Vinculacion } from "./Vinculacion";
+import { Google } from "./Google";
 import { SinAsistente } from "./SinAsistente";
 
 /**
@@ -296,6 +297,10 @@ export default function Configuracion({ disponible }: { disponible: boolean }) {
       {/* La línea, arriba del todo y justo debajo del interruptor: cuando algo
           va mal, lo primero que hay que descartar es que la sesión se cayó. */}
       <Vinculacion />
+
+      {/* Junto a la linea de WhatsApp: las dos son conexiones externas que
+          caducan solas y que hasta ahora solo se rehacian entrando por SSH. */}
+      <Google />
 
       {/* Estilo */}
       <section className="bg-card border border-border rounded-xl p-5 space-y-5">

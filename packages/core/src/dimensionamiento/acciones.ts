@@ -137,17 +137,40 @@ export async function eliminarEstudio(id: number): Promise<ResultadoAccion<null>
   }
 }
 
-/** Prospectos a los que se puede asociar un estudio. */
-export async function listarLeads(): Promise<{ id: number; nombre: string; empresa: string | null }[]> {
+/**
+ * Prospectos a los que se puede asociar un estudio.
+ *
+ * `SELECT *` y no una lista de columnas, a propósito. La tabla `quotes` **no
+ * tiene la misma forma en las dos marcas**: la de Energy nació antes y con
+ * otras columnas —`modality`, `consumption`, `installType`, `gridType`— y no
+ * tiene `company`. Pedirla por nombre tumbaba la página entera con un
+ * "no such column", que es exactamente lo que pasó.
+ *
+ * El resto del panel de Energy ya hacía `SELECT *` por esta misma razón. Lo que
+ * falta se lee como ausente en vez de reventar.
+ */
+export async function listarLeads(): Promise<
+  { id: number; nombre: string; empresa: string | null; consumoKwh: number | null }[]
+> {
   const db = await getDB();
   const filas = await db.all(
-    `SELECT id, fullName, company
-       FROM quotes
+    `SELECT * FROM quotes
       WHERE (isDeleted = 0 OR isDeleted IS NULL)
       ORDER BY id DESC
       LIMIT 200`,
   );
-  return filas.map((f: any) => ({ id: f.id, nombre: f.fullName ?? `Prospecto ${f.id}`, empresa: f.company ?? null }));
+  return filas.map((f: any) => ({
+    id: f.id,
+    nombre: f.fullName ?? `Prospecto ${f.id}`,
+    // En Systems es `company`; en Energy no existe y el equivalente más útil es
+    // dónde queda la instalación.
+    empresa: f.company ?? f.location ?? f.address ?? null,
+    // Energy pregunta el consumo en el formulario de cotización. Si está, sirve
+    // para no tener que volver a pedírselo al prospecto.
+    consumoKwh: Number.isFinite(Number(f.consumption)) && Number(f.consumption) > 0
+      ? Number(f.consumption)
+      : null,
+  }));
 }
 
 function mapear(f: any): EstudioGuardado {

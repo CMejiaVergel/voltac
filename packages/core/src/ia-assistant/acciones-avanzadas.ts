@@ -1,15 +1,19 @@
 "use server";
 
+import { headers } from "next/headers";
 import { confirmarAccionSensible } from "../confirmar";
 import {
   asistenteDisponible,
+  canjearCodigoGoogle,
   limpiarConversacion,
   revincularLinea,
   traerAgenda,
   traerMetricas,
   traerModelos,
+  traerGoogle,
   traerVinculacion,
   type Agenda,
+  type EstadoGoogle,
   type Metricas,
   type ModeloDisponible,
   type Vinculacion,
@@ -112,4 +116,42 @@ export async function revincularLineaConfirmada(
   if (!confirmacion.ok) return { ok: false, error: confirmacion.error };
 
   return intentar(() => revincularLinea());
+}
+
+/* ------------------------------------------------------------ Google Workspace */
+
+/**
+ * Dónde vuelve Google después de autorizar.
+ *
+ * Tiene que ser una dirección **pública**: el asistente escucha solo en
+ * loopback, así que su propia URL de retorno —`localhost:3021`— no la alcanza
+ * el navegador de nadie. La primera vez que se conectó Google hubo que abrir un
+ * túnel SSH para completar el paso. Pasando por el panel, que sí está publicado,
+ * deja de hacer falta.
+ *
+ * Se deduce de la petición en curso y no de una variable de entorno, para que
+ * funcione igual en el servidor y en desarrollo sin configurar nada. Detrás de
+ * Nginx hay que mirar `x-forwarded-*`, o saldría `http` y el puerto interno.
+ */
+async function urlDeRetorno(): Promise<string> {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+  return `${proto}://${host}/admin/ia-assistant/google`;
+}
+
+export async function cargarGoogle(): Promise<Resultado<EstadoGoogle>> {
+  const retorno = await urlDeRetorno();
+  return intentar(() => traerGoogle(retorno));
+}
+
+/**
+ * Entrega al asistente el código que Google devolvió.
+ *
+ * La URL de retorno se recalcula igual que al pedir el consentimiento: Google
+ * compara las dos y rechaza el canje si difieren en un solo carácter.
+ */
+export async function conectarGoogle(code: string): Promise<Resultado<{ cuenta?: string }>> {
+  const retorno = await urlDeRetorno();
+  return intentar(() => canjearCodigoGoogle(code, retorno));
 }

@@ -14,6 +14,8 @@ interface Lead {
   id: number;
   nombre: string;
   empresa: string | null;
+  /** Lo que declaró en el formulario de cotización, si lo declaró. */
+  consumoKwh: number | null;
 }
 
 const INICIAL: EntradaDimensionamiento = {
@@ -356,6 +358,7 @@ export function Calculadora({ leads }: { leads: Lead[] }) {
                 <option key={l.id} value={l.id}>
                   {l.nombre}
                   {l.empresa ? ` — ${l.empresa}` : ""}
+                  {l.consumoKwh ? ` (${l.consumoKwh} kWh)` : ""}
                 </option>
               ))}
             </select>

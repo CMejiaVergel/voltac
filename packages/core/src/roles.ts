@@ -119,6 +119,11 @@ export const ACCESO: readonly ReglaAcceso[] = [
      tiene por qué poder cambiar el modelo, la temperatura ni el tono con que
      habla la empresa. */
   { prefijo: "/admin/ia-assistant/configuracion", roles: ["propietario"] },
+  /* Donde vuelve Google tras autorizar. Por prefijo caería en la regla de
+     arriba —propietario y asesor—, pero conectar una cuenta de Google es
+     configuración: quien atiende conversaciones no cambia con qué credenciales
+     opera la empresa. */
+  { prefijo: "/admin/ia-assistant/google", roles: ["propietario"] },
   { prefijo: "/admin/leads", roles: ["propietario", "asesor"] },
   /* Dimensionamiento existe solo en Energy. Lo alcanzan las mismas personas que
      atienden prospectos, porque es la herramienta con la que se les responde

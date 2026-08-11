@@ -463,6 +463,31 @@ export function revincularLinea(): Promise<{ ok: true; archivadoEn?: string }> {
   return pedir("/crm/vinculacion/revincular", { metodo: "POST" });
 }
 
+export interface EstadoGoogle {
+  conectado: boolean;
+  /** Qué cuenta, no solo si hay una. En esa agenda caen las reuniones. */
+  cuenta?: string;
+  calendario: string;
+  zona: string;
+  /** A dónde mandar al navegador para autorizar. */
+  urlConsentimiento?: string;
+  /** Por qué no se pudo preparar el enlace, si no se pudo. */
+  motivo?: string;
+  /** La que hay que registrar en Google Cloud. Se muestra si falla el retorno. */
+  redirectUri: string;
+}
+
+export function traerGoogle(redirectUri: string): Promise<EstadoGoogle> {
+  return pedir(`/crm/google?redirectUri=${encodeURIComponent(redirectUri)}`);
+}
+
+export function canjearCodigoGoogle(
+  code: string,
+  redirectUri: string,
+): Promise<{ ok: true; cuenta?: string }> {
+  return pedir("/crm/google/canjear", { metodo: "POST", cuerpo: { code, redirectUri } });
+}
+
 /** Borra una conversación entera. No se puede deshacer. */
 export function limpiarConversacion(id: string): Promise<{
   turnos: number;
