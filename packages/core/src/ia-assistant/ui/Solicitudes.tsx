@@ -25,7 +25,17 @@ export function Solicitudes() {
   const [lista, setLista] = React.useState<SolicitudCita[] | null>(null);
   const [error, setError] = React.useState("");
   const [abierta, setAbierta] = React.useState<string | null>(null);
+  /**
+   * Que se decidio. Es lo primero que se elige, y de ahi sale todo lo demas.
+   *
+   * Antes el cuadro venia con el mensaje de exito ya escrito y los dos botones
+   * mandaban ese mismo texto. Quien rechazaba sin editarlo le confirmaba al
+   * cliente que su cita habia quedado reprogramada. Paso de verdad.
+   */
+  const [decision, setDecision] = React.useState<"si" | "no" | null>(null);
+  const [alternativas, setAlternativas] = React.useState("");
   const [mensaje, setMensaje] = React.useState("");
+  const [tocado, setTocado] = React.useState(false);
   const [enviando, setEnviando] = React.useState(false);
 
   const refrescar = React.useCallback(async () => {
@@ -47,29 +57,76 @@ export function Solicitudes() {
 
   function abrir(s: SolicitudCita) {
     setAbierta(s.id);
-    /* El mensaje viene escrito y se puede corregir. Con el cuadro vacío la
-       tentación es mandar un "listo" seco, y esto es justo el momento en que el
-       cliente lleva rato esperando: merece una frase completa. */
-    setMensaje(
-      s.tipo === "mover"
-        ? `Listo${s.nombre ? `, ${s.nombre.split(" ")[0]}` : ""}. Tu reunión quedó reprogramada${
-            s.cuandoPropone ? ` para el ${s.cuandoPropone}` : ""
-          }. Te llega la invitación actualizada al correo.`
-        : `Listo${s.nombre ? `, ${s.nombre.split(" ")[0]}` : ""}. Tu reunión quedó cancelada. Cuando quieras retomarla me escribes por aquí.`,
-    );
+    setDecision(null);
+    setAlternativas("");
+    setMensaje("");
+    setTocado(false);
   }
 
-  async function resolver(id: string, como: "resuelta" | "rechazada") {
+  /**
+   * Redacta el aviso a partir de la decision, no al reves.
+   *
+   * El borrador se rehace solo mientras nadie lo haya tocado a mano. En cuanto
+   * alguien escribe, se respeta lo suyo: nada mas irritante que un cuadro que
+   * borra lo que acabas de escribir porque cambiaste una casilla.
+   */
+  const redactar = React.useCallback(
+    (s: SolicitudCita, d: "si" | "no", alts: string): string => {
+      const nombre = s.nombre ? `, ${s.nombre.split(" ")[0]}` : "";
+      /* "a. m." ya termina en punto, asi que al pegarle otra frase sale
+         "10:00 a. m..". Solo se colapsa el punto repetido: la coma que sigue
+         --"a. m., pero si"-- es correcta y no hay que tocarla. */
+      const limpio = (t: string) => t.replace(/\.\.+/g, ".");
+
+      if (d === "si") {
+        return limpio(s.tipo === "mover"
+          ? `Listo${nombre}. Tu reunión quedó reprogramada${
+              s.cuandoPropone ? ` para el ${s.cuandoPropone}` : ""
+            }. Te llega la invitación actualizada al correo.`
+          : `Listo${nombre}. Tu reunión quedó cancelada. Cuando quieras retomarla me escribes por aquí.`);
+      }
+
+      if (s.tipo === "cancelar") {
+        return `${nombre ? `Hola${nombre}` : "Hola"}. No pude cancelar la reunión por este medio; alguien del equipo te contacta para coordinarlo.`;
+      }
+
+      const base = `${nombre ? `Hola${nombre}` : "Hola"}. No tengo disponible${
+        s.cuandoPropone ? ` el ${s.cuandoPropone}` : " esa hora"
+      }`;
+
+      /* Rechazar sin ofrecer nada deja al cliente en el aire y obliga a otra
+         vuelta. Si hay alternativas, el mensaje las lleva y la conversacion
+         puede cerrarse en el siguiente mensaje del cliente. */
+      return limpio(
+        alts.trim()
+          ? `${base}, pero sí ${alts.trim()}. ¿Cuál te sirve?`
+          : `${base}. ¿Qué otro día te queda bien y lo miramos?`,
+      );
+    },
+    [],
+  );
+
+  React.useEffect(() => {
+    if (!abierta || !decision || tocado) return;
+    const s = (lista ?? []).find((x) => x.id === abierta);
+    if (s) setMensaje(redactar(s, decision, alternativas));
+  }, [abierta, decision, alternativas, tocado, lista, redactar]);
+
+  async function resolver(id: string) {
+    if (!decision) return;
     setEnviando(true);
     setError("");
-    const r = await resolverSolicitudCita(id, como, mensaje.trim());
+    const r = await resolverSolicitudCita(id, decision === "si" ? "resuelta" : "rechazada", mensaje.trim());
     setEnviando(false);
     if (!r.ok) {
       setError(r.error ?? "No se pudo resolver.");
       return;
     }
     setAbierta(null);
+    setDecision(null);
+    setAlternativas("");
     setMensaje("");
+    setTocado(false);
     void refrescar();
   }
 
@@ -158,41 +215,98 @@ export function Solicitudes() {
           </div>
 
           {abierta === s.id ? (
-            <div className="space-y-2 pt-1">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                Lo que se le va a escribir al cliente
-              </label>
-              <textarea
-                rows={3}
-                value={mensaje}
-                onChange={(e) => setMensaje(e.target.value)}
-                className="w-full resize-none rounded-lg border border-border bg-card p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-              />
-              <p className="text-[10px] text-muted-foreground">
-                Sale como mensaje del asistente y no toma la conversación: él sigue atendiendo después.
-              </p>
+            <div className="space-y-3 pt-1">
+              {/* Primero la decision. Todo lo demas --el borrador incluido--
+                  sale de aqui, y por eso no hay nada escrito hasta elegir. */}
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                  ¿Se puede {s.tipo === "cancelar" ? "cancelar" : `mover${s.cuandoPropone ? ` al ${s.cuandoPropone}` : ""}`}?
+                </label>
+                <div className="flex gap-2 mt-1.5">
+                  <button
+                    type="button"
+                    onClick={() => { setDecision("si"); setTocado(false); }}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border transition-colors",
+                      decision === "si"
+                        ? "bg-green-600 border-green-600 text-white"
+                        : "border-border hover:bg-muted",
+                    )}
+                  >
+                    <Check size={13} />
+                    Sí, ya la moví
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setDecision("no"); setTocado(false); }}
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold border transition-colors",
+                      decision === "no"
+                        ? "bg-red-600 border-red-600 text-white"
+                        : "border-border hover:bg-muted",
+                    )}
+                  >
+                    <X size={13} />
+                    No a esa hora
+                  </button>
+                </div>
+              </div>
+
+              {/* Rechazar sin ofrecer nada deja al cliente en el aire y obliga
+                  a otra vuelta entera. Con alternativas, la conversacion puede
+                  cerrarse en su siguiente mensaje. */}
+              {decision === "no" && s.tipo === "mover" && (
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    ¿Qué horas sí puedes ofrecerle?
+                  </label>
+                  <input
+                    type="text"
+                    value={alternativas}
+                    onChange={(e) => { setAlternativas(e.target.value); setTocado(false); }}
+                    placeholder="el viernes 14 a las 2 p.m. o el lunes 17 a las 9 a.m."
+                    className="w-full mt-1 rounded-lg border border-border bg-card px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Escríbelas como se las dirías. Cuando el cliente elija una, te llega otra solicitud para
+                    aprobarla.
+                  </p>
+                </div>
+              )}
+
+              {decision && (
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                    Lo que se le va a escribir al cliente
+                  </label>
+                  <textarea
+                    rows={3}
+                    value={mensaje}
+                    onChange={(e) => { setMensaje(e.target.value); setTocado(true); }}
+                    className="w-full mt-1 resize-none rounded-lg border border-border bg-card p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">
+                    Sale como mensaje del asistente y no toma la conversación: él sigue atendiendo después.
+                  </p>
+                </div>
+              )}
+
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
-                  onClick={() => void resolver(s.id, "resuelta")}
-                  disabled={enviando || !mensaje.trim()}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-green-600 text-white text-xs font-semibold disabled:opacity-40 hover:bg-green-700 transition-colors"
+                  onClick={() => void resolver(s.id)}
+                  disabled={enviando || !decision || !mensaje.trim()}
+                  className={cn(
+                    "flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-semibold text-white disabled:opacity-40 transition-colors",
+                    decision === "no" ? "bg-red-600 hover:bg-red-700" : "bg-green-600 hover:bg-green-700",
+                  )}
                 >
                   {enviando ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
-                  Ya la moví, avisar al cliente
+                  Enviar y cerrar la solicitud
                 </button>
                 <button
                   type="button"
-                  onClick={() => void resolver(s.id, "rechazada")}
-                  disabled={enviando || !mensaje.trim()}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg border border-red-200 text-red-700 text-xs font-semibold disabled:opacity-40 hover:bg-red-50 transition-colors"
-                >
-                  <X size={13} />
-                  No se pudo, avisar
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setAbierta(null)}
+                  onClick={() => { setAbierta(null); setDecision(null); }}
                   className="px-3 py-2 rounded-lg border border-border text-xs"
                 >
                   Cancelar
