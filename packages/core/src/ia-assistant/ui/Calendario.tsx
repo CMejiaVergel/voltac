@@ -6,6 +6,7 @@ import { cn } from "../../utils";
 import { cargarAgenda } from "../acciones-avanzadas";
 import type { Agenda, EventoAgenda } from "../cliente";
 import { SinAsistente } from "./SinAsistente";
+import { Solicitudes } from "./Solicitudes";
 
 /**
  * La agenda, dentro del módulo.
@@ -89,6 +90,11 @@ export default function Calendario({ disponible }: { disponible: boolean }) {
 
   return (
     <div className="space-y-4">
+      {/* Arriba del calendario a proposito: son peticiones de clientes que
+          estan esperando, y son lo unico de esta pantalla que exige una
+          decision. La agenda se mira; esto se atiende. */}
+      <Solicitudes />
+
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex gap-1 bg-muted rounded-lg p-1">
           {DIAS_OPCIONES.map((d) => (

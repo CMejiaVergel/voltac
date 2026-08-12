@@ -2,6 +2,7 @@
 
 import { headers } from "next/headers";
 import { confirmarAccionSensible } from "../confirmar";
+import { sesionActual } from "../sesion";
 import {
   asistenteDisponible,
   canjearCodigoGoogle,
@@ -10,10 +11,13 @@ import {
   traerAgenda,
   traerMetricas,
   traerModelos,
+  resolverSolicitud,
   traerGoogle,
+  traerSolicitudes,
   traerVinculacion,
   type Agenda,
   type EstadoGoogle,
+  type SolicitudCita,
   type Metricas,
   type ModeloDisponible,
   type Vinculacion,
@@ -177,4 +181,29 @@ export async function cargarGoogle(): Promise<Resultado<EstadoGoogle>> {
 export async function conectarGoogle(code: string): Promise<Resultado<{ cuenta?: string }>> {
   const retorno = await urlDeRetorno();
   return intentar(() => canjearCodigoGoogle(code, retorno));
+}
+
+/* ------------------------------------------------- solicitudes de cita */
+
+export async function cargarSolicitudes(): Promise<Resultado<SolicitudCita[]>> {
+  const r = await intentar(() => traerSolicitudes());
+  return r.ok ? { ok: true, datos: r.datos!.solicitudes } : { ok: false, error: r.error };
+}
+
+/**
+ * Aprueba o rechaza una petición de mover o cancelar una cita.
+ *
+ * No pide contraseña, y es deliberado: aquí no se destruye nada. El calendario
+ * lo cambia la persona a mano en Google; esto solo marca la petición como
+ * atendida y le manda al cliente el aviso que esa persona redactó. Pedirle una
+ * contraseña por confirmar un mensaje que ella misma escribió sería fricción
+ * sin nada que proteger.
+ */
+export async function resolverSolicitudCita(
+  id: string,
+  como: "resuelta" | "rechazada",
+  mensaje: string,
+): Promise<Resultado<{ ok: true; solicitud: SolicitudCita }>> {
+  const sesion = await sesionActual();
+  return intentar(() => resolverSolicitud(id, como, mensaje, sesion?.sub));
 }

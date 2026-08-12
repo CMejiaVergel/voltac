@@ -465,6 +465,45 @@ export function revincularLinea(): Promise<{ ok: true; archivadoEn?: string }> {
   return pedir("/crm/vinculacion/revincular", { metodo: "POST" });
 }
 
+export interface SolicitudCita {
+  id: string;
+  conversationId: string;
+  nombre?: string;
+  correo?: string;
+  tipo: "mover" | "cancelar";
+  /** Lo que pidió el cliente, en sus términos. */
+  pedido: string;
+  cuandoPropone?: string;
+  /** Si esa franja estaba libre según el calendario, cuando se consultó. */
+  franjaLibre?: boolean;
+  estado: "pendiente" | "resuelta" | "rechazada";
+  creadaEn: number;
+  resueltaEn?: number;
+  resueltaPor?: string;
+}
+
+export function traerSolicitudes(soloPendientes = false): Promise<{ solicitudes: SolicitudCita[] }> {
+  return pedir(`/crm/solicitudes${soloPendientes ? "?pendientes=1" : ""}`);
+}
+
+/**
+ * Marca la petición y le avisa al cliente.
+ *
+ * El aviso sale como mensaje del asistente y NO toma la conversación: el
+ * cliente espera una confirmación, no que aparezca una persona.
+ */
+export function resolverSolicitud(
+  id: string,
+  como: "resuelta" | "rechazada",
+  mensaje: string,
+  quien?: string,
+): Promise<{ ok: true; solicitud: SolicitudCita }> {
+  return pedir(`/crm/solicitudes/${encodeURIComponent(id)}/resolver`, {
+    metodo: "POST",
+    cuerpo: { como, mensaje, quien },
+  });
+}
+
 export interface EstadoGoogle {
   conectado: boolean;
   /** Qué cuenta, no solo si hay una. En esa agenda caen las reuniones. */
