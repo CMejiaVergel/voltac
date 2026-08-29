@@ -12,6 +12,11 @@
 
 @plugin "tailwindcss-animate";
 
+/* Gestos, animaciones y ajustes tactiles del panel movil. Compartido con la
+   otra marca: duplicarlo seria garantizar que dentro de un mes una tenga los
+   detalles afinados y la otra no. */
+@import "../../../../packages/core/src/admin-shell/app-movil.css";
+
 @custom-variant dark (&:is(.dark *));
 
 :root {

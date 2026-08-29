@@ -1,0 +1,193 @@
+/*
+ * Lo que hace que el panel se sienta una aplicacion y no una pagina.
+ *
+ * Vive en el nucleo y lo importan los dos `globals.css`. Duplicarlo seria
+ * garantizar que dentro de un mes una marca tenga los gestos afinados y la
+ * otra no.
+ *
+ * Casi todo aqui son detalles que nadie nota cuando estan y que delatan a una
+ * web disfrazada de app cuando faltan: el destello azul al tocar un boton, el
+ * medio segundo de retraso antes de que responda, el zoom involuntario al
+ * escribir en un campo, la pagina que rebota por debajo de una lista.
+ */
+
+/* ------------------------------------------------------------ animaciones */
+
+@keyframes entrada {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes aparecer {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* La hoja sube desde abajo. La curva no es una `ease-out` cualquiera: es la
+   que usan los sistemas operativos para las hojas modales, con una salida muy
+   larga que hace que el movimiento se sienta pesado y fisico en vez de
+   mecanico. */
+@keyframes subir {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@keyframes bajar {
+  from {
+    opacity: 0;
+    transform: translateY(-120%);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.animate-entrada {
+  animation: entrada 0.22s ease-out;
+}
+.animate-aparecer {
+  animation: aparecer 0.2s ease-out;
+}
+.animate-subir {
+  animation: subir 0.28s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.animate-bajar {
+  animation: bajar 0.32s cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/*
+ * Quien pide menos movimiento no lo pide por gusto: hay personas a las que las
+ * transiciones les producen mareo real. Se apagan del todo en vez de
+ * acortarlas.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .animate-entrada,
+  .animate-aparecer,
+  .animate-subir,
+  .animate-bajar {
+    animation: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ----------------------------------------------------------- hueco inferior */
+
+/*
+ * Espacio para que el ultimo elemento de una pantalla no quede debajo de la
+ * barra de navegacion ni del indicador de inicio del iPhone. En escritorio no
+ * hay barra, asi que vuelve al margen normal.
+ */
+.pb-barra {
+  padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 768px) {
+  .pb-barra {
+    padding-bottom: 2rem;
+  }
+}
+
+/* ------------------------------------------------------ comportamiento tactil */
+
+@media (hover: none) and (pointer: coarse) {
+  /* El recuadro azul que Android pinta sobre cada elemento tocado. En una web
+     pasa desapercibido; en algo que quiere parecer una app, delata. */
+  a,
+  button,
+  [role="button"],
+  input,
+  select,
+  textarea,
+  label {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Sin esto los navegadores esperan ~300ms tras cada toque por si viene un
+     segundo y es un doble toque para hacer zoom. Ese retraso es la diferencia
+     mas grande entre "web" y "app" y casi nadie sabe nombrarla. */
+  a,
+  button,
+  [role="button"],
+  summary {
+    touch-action: manipulation;
+  }
+
+  /*
+   * iOS hace zoom automatico al enfocar un campo cuya letra mide menos de
+   * 16px, y despues NO vuelve atras: la pantalla se queda ampliada y hay que
+   * pellizcar para recuperarla. Es el fallo movil mas comun de los paneles
+   * hechos para escritorio.
+   */
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: max(16px, 1em);
+  }
+
+  /* Las areas de la barra de navegacion y los botones de icono necesitan sitio
+     para un dedo. 44px es el minimo que recomiendan Apple y Google, y por
+     debajo de eso la gente falla el toque sin saber por que. */
+  nav a,
+  nav button {
+    min-height: 44px;
+  }
+}
+
+/* El texto de la navegacion no se selecciona: mantener pulsado una pestana
+   para elegir su etiqueta no es algo que nadie quiera hacer, y en cambio
+   interrumpe el gesto de tocar. El contenido si se puede seleccionar. */
+nav,
+header {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/*
+ * El rebote de la pagina entera. En el navegador es el comportamiento normal;
+ * dentro de una aplicacion instalada delata que debajo hay una web, porque
+ * asoma el fondo al arrastrar de mas.
+ */
+html,
+body {
+  overscroll-behavior-y: none;
+}
+
+/* --------------------------------------------------- aplicacion instalada */
+
+/*
+ * Cuando corre instalada no hay barra de navegador que absorba el gesto de
+ * "atras", asi que el desplazamiento horizontal accidental mueve la pantalla
+ * entera y parece que algo se rompio.
+ */
+@media (display-mode: standalone) {
+  html,
+  body {
+    overscroll-behavior: none;
+    /* Sin barra del navegador, la seleccion de texto al mantener pulsado sale
+       con mucha mas frecuencia y casi siempre por accidente. */
+    -webkit-touch-callout: none;
+  }
+}

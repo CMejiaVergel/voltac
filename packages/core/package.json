@@ -40,7 +40,8 @@
     "./ia-assistant/acciones-config": "./src/ia-assistant/acciones-config.ts",
     "./ia-assistant/acciones-avanzadas": "./src/ia-assistant/acciones-avanzadas.ts",
     "./ia-assistant/ui/*": "./src/ia-assistant/ui/*.tsx",
-    "./ia-assistant/api/*": "./src/ia-assistant/api/*.ts"
+    "./ia-assistant/api/*": "./src/ia-assistant/api/*.ts",
+    "./admin-shell": "./src/admin-shell/index.ts"
   },
   "//": "El nucleo no instala nada por su cuenta: usa las copias de la aplicacion que lo monta, y por eso todo va como peerDependencies. Antes no habia ninguna declarada y resolvia por hoisting; el dia que npm dejo de subir `next` a la raiz, el nucleo dejo de compilar sin haber cambiado una linea.",
   "peerDependencies": {
