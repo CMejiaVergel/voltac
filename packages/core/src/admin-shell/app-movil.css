@@ -79,7 +79,8 @@
   .animate-entrada,
   .animate-aparecer,
   .animate-subir,
-  .animate-bajar {
+  .animate-bajar,
+  .animate-cajon {
     animation: none;
   }
 
@@ -96,18 +97,37 @@
 /* ----------------------------------------------------------- hueco inferior */
 
 /*
- * Espacio para que el ultimo elemento de una pantalla no quede debajo de la
- * barra de navegacion ni del indicador de inicio del iPhone. En escritorio no
- * hay barra, asi que vuelve al margen normal.
+ * Margen inferior del contenido.
+ *
+ * Ya no hay barra fija abajo --la navegacion es un cajon lateral-- asi que solo
+ * hace falta apartarse del indicador de inicio del iPhone, que en una
+ * aplicacion instalada se dibuja encima de la pagina.
  */
 .pb-barra {
-  padding-bottom: calc(5.5rem + env(safe-area-inset-bottom));
+  padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
 }
 
 @media (min-width: 768px) {
   .pb-barra {
     padding-bottom: 2rem;
   }
+}
+
+/* --------------------------------------------------------------- el cajon */
+
+@keyframes cajon-entra {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+.animate-cajon {
+  /* La misma curva de las hojas del sistema: salida larga, para que el panel
+     se sienta pesado en vez de mecanico. */
+  animation: cajon-entra 0.28s cubic-bezier(0.32, 0.72, 0, 1);
 }
 
 /* ------------------------------------------------------ comportamiento tactil */
