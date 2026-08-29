@@ -83,6 +83,7 @@ semana · **XL** varias semanas, es un producto dentro del producto.
 | CORE-F10 | Reinventar Analytics hacia redes sociales | CORE | 🟡 | P3 | L |
 | **Sugerencias** ||||||
 | CORE-S1 | Compartir los componentes duplicados entre las dos suites | CORE | 🟠 | P2 | M |
+| ~~CORE-S5~~ | ~~Panel como aplicación móvil e instalable (PWA)~~ · **hecho** | CORE | 🟠 | — | L |
 | CORE-S2 | Vigilancia: enterarse de que un asistente se cayó | CORE | 🟠 | P1 | M |
 | CORE-S3 | Caché de prompt para bajar el costo del modelo | CORE | 🟡 | P2 | S |
 | CORE-S4 | El informe de gasto, dentro del panel | CORE | ⚪ | P3 | S |
