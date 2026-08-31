@@ -1,13 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { login } from "./actions";
 
 export default function AdminLoginPage() {
   const router = useRouter();
+  const params = useSearchParams();
   const [error, setError] = React.useState("");
   const [loading, setLoading] = React.useState(false);
 
@@ -23,7 +24,17 @@ export default function AdminLoginPage() {
     try {
       const result = await login(undefined, new FormData(e.currentTarget));
       if (result.error) setError(result.error);
-      else router.replace("/admin");
+      else {
+        /*
+         * Volver a donde se iba, si el portero lo apunto al mandarnos aqui.
+         * Se vuelve a comprobar en el cliente aunque el proxy ya lo valide:
+         * este valor llega por la barra de direcciones y cualquiera puede
+         * escribirlo a mano.
+         */
+        const next = params.get("next");
+        const seguro = next && next.startsWith("/admin/") && !next.startsWith("//");
+        router.replace(seguro ? next : "/admin");
+      }
     } catch {
       setError("No se pudo contactar al servidor. Intente de nuevo.");
     } finally {
@@ -59,6 +70,19 @@ export default function AdminLoginPage() {
              <label className="text-xs font-bold uppercase tracking-wider text-white/50">Contraseña</label>
              <input name="password" type="password" className="w-full bg-secondary/50 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-white/20 focus:outline-none focus:border-primary transition-colors" placeholder="••••••••" autoComplete="current-password" required />
            </div>
+
+           {/* Sesion larga, opcional y apagada por defecto. Marcarla es lo que
+               hace utilizable el panel instalado como aplicacion: sin ella la
+               sesion muere en ocho horas y hay que entrar cada manana. En un
+               equipo compartido, no marcarla. */}
+           <label className="flex cursor-pointer select-none items-center gap-3 pt-1 text-sm text-white/70 transition active:scale-[.99]">
+             <input
+               name="recordar"
+               type="checkbox"
+               className="h-4 w-4 shrink-0 accent-primary"
+             />
+             Mantener la sesión iniciada en este dispositivo
+           </label>
 
            {error && <p className="text-destructive text-sm font-medium text-center">{error}</p>}
 

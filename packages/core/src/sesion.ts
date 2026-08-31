@@ -2,6 +2,7 @@ import { cookies, headers } from "next/headers";
 import {
   SESSION_COOKIE,
   SESSION_TTL_SECONDS,
+  SESSION_TTL_RECORDADA,
   adminConfig,
   signSession,
   verifySession,
@@ -135,7 +136,13 @@ export async function iniciarSesion(formData: FormData): Promise<{ error?: strin
     };
   }
 
-  const token = await signSession(acceso.usuario, acceso.rol, config.secret);
+  /* La casilla "mantener sesión iniciada". Es opcional y va apagada por
+     defecto: quien entra desde un equipo compartido conserva su jornada de
+     ocho horas. La marca quien usa el panel instalado en su propio telefono,
+     donde volver a entrar cada manana lo hace inservible. */
+  const recordar = formData.get("recordar") === "on";
+
+  const token = await signSession(acceso.usuario, acceso.rol, config.secret, { recordar });
   const store = await cookies();
 
   store.set(SESSION_COOKIE, token, {
@@ -143,7 +150,7 @@ export async function iniciarSesion(formData: FormData): Promise<{ error?: strin
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: SESSION_TTL_SECONDS,
+    maxAge: recordar ? SESSION_TTL_RECORDADA : SESSION_TTL_SECONDS,
   });
 
   await auditar({

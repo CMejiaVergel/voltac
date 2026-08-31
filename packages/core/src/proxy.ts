@@ -1,5 +1,12 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { SESSION_COOKIE, adminConfig, verifySession } from "./auth";
+import {
+  SESSION_COOKIE,
+  SESSION_MAX_RECORDADA,
+  SESSION_TTL_RECORDADA,
+  adminConfig,
+  signSession,
+  verifySession,
+} from "./auth";
 import { alcanzaMarca, INICIO, rolesPara } from "./roles";
 import { estadoDeCuenta } from "./usuarios";
 import { currentVertical } from "./vertical";
@@ -86,7 +93,38 @@ export async function proxy(request: NextRequest) {
         cabecerasSeguridad(NextResponse.json({ error: "No autorizado" }, { status: 401 }), true)
       : cabecerasSeguridad(noEncontrado(), true);
 
-  if (!sesion) return sinAcceso();
+  /*
+   * Sin sesion se manda al login, NO un 404.
+   *
+   * El 404 existe para que lo que no te corresponde no confirme siquiera que
+   * existe, y esa regla se mantiene intacta mas abajo: quien SI tiene sesion
+   * pero no alcanza una seccion sigue recibiendo un 404, que es donde de
+   * verdad se protege el mapa de modulos.
+   *
+   * Aqui no protege nada. `/admin/login` ya se sirve en abierto --esta unas
+   * lineas mas arriba-- asi que la existencia de un panel con acceso ya es
+   * publica, y esta redireccion es IDENTICA exista o no la ruta pedida: de
+   * `/admin/contabilidad` y de `/admin/pepito` sale exactamente lo mismo.
+   *
+   * Lo que si hacia el 404 era romper el panel instalado como aplicacion. Su
+   * `start_url` es `/admin`, y `noEncontrado()` devuelve un cuerpo vacio: al
+   * caducar la sesion, abrir la app mostraba una pantalla en blanco sin
+   * explicacion ni salida. Con la sesion de ocho horas, eso pasaba cada
+   * manana.
+   */
+  if (!sesion) {
+    if (esApi) return sinAcceso();
+
+    const destino = new URL(LOGIN_PATH, request.url);
+    /* A donde volver despues de entrar. Solo rutas internas del panel: sin
+       esta comprobacion, `?next=//otrositio` convierte el login en un salto a
+       cualquier parte de internet con nuestro dominio de por medio. */
+    const pedida = `${pathname}${request.nextUrl.search}`;
+    if (pathname.startsWith("/admin/") && !pathname.startsWith("//") && pathname !== LOGIN_PATH) {
+      destino.searchParams.set("next", pedida);
+    }
+    return cabecerasSeguridad(NextResponse.redirect(destino), true);
+  }
 
   /*
    * La firma solo prueba que el token lo emitimos nosotros y que no ha
@@ -131,5 +169,44 @@ export async function proxy(request: NextRequest) {
     return cabecerasSeguridad(noEncontrado(), true);
   }
 
-  return cabecerasSeguridad(NextResponse.next(), true);
+  const respuesta = NextResponse.next();
+
+  /*
+   * Renovacion de la sesion larga mientras se usa.
+   *
+   * Sin esto, "mantener sesion iniciada" seria un plazo fijo: a los treinta
+   * dias exactos la aplicacion vuelve a la pantalla de entrada aunque se este
+   * usando a diario. Con la renovacion, el plazo cuenta desde la ULTIMA visita
+   * y no desde la primera, que es como se comporta cualquier aplicacion.
+   *
+   * Se renueva solo cuando ya paso la mitad de la ventana: reescribir la
+   * cookie en cada peticion no aporta nada y firma un token por imagen y por
+   * hoja de estilos.
+   *
+   * `ini` es el freno. Es el inicio REAL de la sesion, se conserva intacto
+   * entre renovaciones, y pasado el tope absoluto ya no se renueva mas: la
+   * sesion caduca y hay que volver a entrar. Sin ese tope, una sesion usada a
+   * diario no expiraria nunca.
+   */
+  if (sesion.rec && config) {
+    const ahora = Math.floor(Date.now() / 1000);
+    const inicio = sesion.ini ?? sesion.iat;
+    const leQueda = sesion.exp - ahora;
+
+    if (leQueda < SESSION_TTL_RECORDADA / 2 && ahora - inicio < SESSION_MAX_RECORDADA) {
+      const token = await signSession(sesion.sub, sesion.rol, config.secret, {
+        recordar: true,
+        ini: inicio,
+      });
+      respuesta.cookies.set(SESSION_COOKIE, token, {
+        httpOnly: true,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+        maxAge: SESSION_TTL_RECORDADA,
+      });
+    }
+  }
+
+  return cabecerasSeguridad(respuesta, true);
 }

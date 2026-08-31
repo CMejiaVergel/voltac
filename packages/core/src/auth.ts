@@ -22,6 +22,25 @@ export const SESSION_COOKIE = "voltac_session";
 /** Ocho horas: una jornada. Después hay que volver a entrar. */
 export const SESSION_TTL_SECONDS = 8 * 60 * 60;
 
+/**
+ * La sesión larga, para quien marca "mantener sesión iniciada".
+ *
+ * Existe por el panel instalado como aplicación. Con ocho horas fijas, abrirla
+ * por la mañana daba SIEMPRE una pantalla en blanco: la sesión había muerto de
+ * madrugada y `start_url` apunta a `/admin`, que sin cookie no responde nada.
+ * Una aplicación en la que hay que volver a entrar cada día no se usa.
+ *
+ * Es opcional a propósito. El valor por defecto NO cambia: quien entra desde
+ * un equipo compartido sigue teniendo su jornada de ocho horas y nada más. La
+ * sesión larga se pide, no se impone.
+ *
+ * Treinta días de INACTIVIDAD, no de vida: cada visita la renueva. Y por
+ * encima de eso, un tope absoluto que ninguna renovación puede saltar, para
+ * que una sesión no viva indefinidamente aunque se use a diario.
+ */
+export const SESSION_TTL_RECORDADA = 30 * 24 * 60 * 60;
+export const SESSION_MAX_RECORDADA = 90 * 24 * 60 * 60;
+
 function base64url(bytes: Uint8Array): string {
   let binary = "";
   for (const b of bytes) binary += String.fromCharCode(b);
@@ -142,11 +161,44 @@ export interface SessionPayload {
   /** Emisión y expiración, en segundos epoch */
   iat: number;
   exp: number;
+  /**
+   * Cuándo empezó la sesión de verdad, no la última renovación.
+   *
+   * Sin esto, una sesión larga que se renueva sola no caducaría nunca: cada
+   * visita empujaría el vencimiento y el tope absoluto sería inalcanzable.
+   * Se conserva intacto entre renovaciones.
+   *
+   * Opcional porque las cookies emitidas antes de que existiera no lo traen;
+   * ahí se toma `iat`, que para una sesión sin renovar es lo mismo.
+   */
+  ini?: number;
+  /** Si es una sesión larga. Decide qué ventana se aplica al renovarla. */
+  rec?: boolean;
 }
 
-export async function signSession(sub: string, rol: Rol, secret: string): Promise<string> {
+export interface OpcionesSesion {
+  /** Sesión larga y renovable. Ver `SESSION_TTL_RECORDADA`. */
+  recordar?: boolean;
+  /** Inicio original, al renovar. Omitir al entrar por primera vez. */
+  ini?: number;
+}
+
+export async function signSession(
+  sub: string,
+  rol: Rol,
+  secret: string,
+  opciones: OpcionesSesion = {},
+): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
-  const payload: SessionPayload = { sub, rol, iat: now, exp: now + SESSION_TTL_SECONDS };
+  const recordar = Boolean(opciones.recordar);
+  const payload: SessionPayload = {
+    sub,
+    rol,
+    iat: now,
+    exp: now + (recordar ? SESSION_TTL_RECORDADA : SESSION_TTL_SECONDS),
+    ini: opciones.ini ?? now,
+    rec: recordar || undefined,
+  };
   const body = base64url(encoder.encode(JSON.stringify(payload)));
   const key = await hmacKey(secret);
   const sig = new Uint8Array(await crypto.subtle.sign("HMAC", key, encoder.encode(body)));
