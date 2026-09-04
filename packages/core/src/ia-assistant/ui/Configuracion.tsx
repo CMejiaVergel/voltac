@@ -531,6 +531,64 @@ export default function Configuracion({ disponible }: { disponible: boolean }) {
           </div>
 
           <div>
+            <Etiqueta ayuda="quién contesta si el principal falla" modificado={cambiado("modeloRespaldo")}>
+              Modelo de respaldo
+            </Etiqueta>
+            {modelos.length > 0 && !(ajustes.modeloRespaldo ?? "").includes(",") ? (
+              <select
+                value={
+                  !(ajustes.modeloRespaldo ?? "") ||
+                  modelos.some((m) => m.id === (ajustes.modeloRespaldo ?? ""))
+                    ? (ajustes.modeloRespaldo ?? "")
+                    : "__otro"
+                }
+                onChange={(e) => e.target.value !== "__otro" && set("modeloRespaldo", e.target.value)}
+                className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm"
+              >
+                <option value="">Sin respaldo</option>
+                {(ajustes.modeloRespaldo ?? "") &&
+                  !modelos.some((m) => m.id === (ajustes.modeloRespaldo ?? "")) && (
+                    <option value="__otro">{(ajustes.modeloRespaldo ?? "")} (no está en el catálogo)</option>
+                  )}
+                {modelos
+                  .filter((m) => m.id !== ajustes.modelo)
+                  .map((m) => (
+                    <option key={m.id} value={m.id}>
+                      {m.gratis ? "· gratis · " : `· ${precioCorto(m.salidaPorMillon)} · `}
+                      {m.nombre}
+                    </option>
+                  ))}
+              </select>
+            ) : (
+              <input
+                value={(ajustes.modeloRespaldo ?? "")}
+                onChange={(e) => set("modeloRespaldo", e.target.value)}
+                placeholder="vacío = sin respaldo"
+                className="w-full rounded-lg border border-border bg-card px-3 py-2 text-sm font-mono"
+              />
+            )}
+            <p className="text-[11px] text-muted-foreground mt-1">
+              Entra cuando el principal no puede contestar: retirado del catálogo, saturado, o sin
+              cuota si es gratuito. Los fallos de la cuenta —sin saldo, llave revocada— no lo
+              activan: con la misma llave ningún modelo respondería.
+            </p>
+            {(ajustes.modeloRespaldo ?? "") &&
+              modelos.length > 0 &&
+              !modelos.some((m) => m.id === (ajustes.modeloRespaldo ?? "")) &&
+              !(ajustes.modeloRespaldo ?? "").includes(",") && (
+                <p className="text-[11px] text-destructive mt-1">
+                  Ese identificador no aparece en el catálogo. Un modelo retirado no da error hasta
+                  que hace falta, que es siempre el peor momento.
+                </p>
+              )}
+            {!(ajustes.modeloRespaldo ?? "") && (
+              <p className="text-[11px] text-amber-600 dark:text-amber-500 mt-1">
+                Sin respaldo, cualquier fallo del principal deja al asistente mudo con todos.
+              </p>
+            )}
+          </div>
+
+          <div>
             <Etiqueta
               ayuda="segundos de silencio antes de contestar"
               modificado={cambiado("debounceSegundos")}

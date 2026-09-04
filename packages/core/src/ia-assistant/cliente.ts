@@ -302,6 +302,12 @@ export interface EjemploTono {
 export interface Ajustes {
   pausado: boolean;
   modelo: string;
+  /**
+   * Quién contesta si el principal no puede: retirado, saturado o sin cuota.
+   *
+   * Admite varios separados por coma, en orden. Vacío = el del .env.
+   */
+  modeloRespaldo: string;
   /** Calendario de Google donde el asistente agenda. Vacio = el del .env. */
   calendarioId: string;
   temperatura: number;
