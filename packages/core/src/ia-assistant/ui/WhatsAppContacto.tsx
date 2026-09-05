@@ -127,6 +127,35 @@ export default function WhatsAppContacto({ lead }: { lead: any }) {
         </p>
       ) : (
         <>
+          {/* Qué pasó con la factura que subió en el formulario. Va antes del
+              borrador porque cambia cómo hay que leerlo: un mensaje redactado
+              sin datos de consumo no es el mismo mensaje. */}
+          {previo?.recibo && (
+            <div
+              className={`rounded-lg border px-3 py-2 text-xs ${
+                previo.recibo.leido
+                  ? "border-green-200 bg-green-50 text-green-800"
+                  : "border-amber-300 bg-amber-50 text-amber-900"
+              }`}
+            >
+              {previo.recibo.leido ? (
+                <>
+                  <span className="font-semibold">Factura leída.</span> El asistente ya tiene los
+                  datos de consumo.
+                  {previo.recibo.faltantes?.length ? (
+                    <> No se alcanzó a leer: {previo.recibo.faltantes.join(", ")}.</>
+                  ) : null}
+                </>
+              ) : (
+                <>
+                  <span className="font-semibold">No se pudo leer la factura.</span>{" "}
+                  {previo.recibo.motivo} El asistente va a escribir sin datos de consumo y tendrá
+                  que pedírselos en la conversación.
+                </>
+              )}
+            </div>
+          )}
+
           {/* Por qué el asistente le da esa prioridad. Se muestra en lenguaje
               claro a propósito: un puntaje que no se puede discutir no sirve
               para decidir a quién se llama primero. */}

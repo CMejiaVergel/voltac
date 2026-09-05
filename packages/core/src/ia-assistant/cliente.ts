@@ -70,6 +70,15 @@ export interface RespuestaPreview {
   motivo?: string;
   borrador?: string;
   toque?: number;
+  /**
+   * Qué se pudo sacar de la factura que el prospecto subió en el formulario.
+   *
+   * Se muestra ANTES de autorizar el envío. La modalidad exprés no pide el
+   * consumo —solo nombre, teléfono, correo y la foto—, así que si esa foto no
+   * se pudo leer el asistente está escribiendo sin ningún dato de consumo, y
+   * quien autoriza tiene que saberlo.
+   */
+  recibo?: { leido: boolean; faltantes?: string[]; motivo?: string };
   lead: ResumenLead;
 }
 
