@@ -16,8 +16,7 @@ import {
   ExternalLink,
   Bell,
   BellOff,
-  Eraser,
-} from "lucide-react";
+  Eraser, EyeOff} from "lucide-react";
 import { cn } from "../../utils";
 import { IconoCanal } from "./iconos";
 import {
@@ -491,7 +490,25 @@ export default function Bandeja({ disponible }: { disponible: boolean }) {
                         )}
                       </span>
                     )}
-                    <p className="whitespace-pre-line break-words">{m.texto}</p>
+                    <p
+                      className={cn(
+                        "whitespace-pre-line break-words",
+                        // Atenuado, no tachado: sigue siendo legible --a veces
+                        // explica por que la respuesta siguiente suena rara--
+                        // pero se distingue de un vistazo de lo que sí salió.
+                        m.entrega && "opacity-60",
+                      )}
+                    >
+                      {m.texto}
+                    </p>
+                    {m.entrega && (
+                      <span className="mt-1.5 flex items-center gap-1 text-[10px] font-semibold text-destructive">
+                        <EyeOff size={11} />
+                        {m.entrega === "no_enviado"
+                          ? "El cliente no recibió esto"
+                          : "No se pudo entregar"}
+                      </span>
+                    )}
                     <span className="block text-[10px] opacity-50 mt-1 text-right">{hora(m.at)}</span>
                   </div>
                 </div>

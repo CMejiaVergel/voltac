@@ -239,6 +239,14 @@ export interface Mensaje {
   de: Autor;
   texto: string;
   at: number;
+  /**
+   * Si el mensaje llegó al cliente. Ausente significa que sí.
+   *
+   * `no_enviado`: el modelo lo escribió acompañando una llamada a herramienta,
+   * y eso nunca sale hacia el cliente; solo sale la respuesta final del ciclo.
+   * `fallido`: se intentó enviar y WhatsApp no lo entregó.
+   */
+  entrega?: "no_enviado" | "fallido";
 }
 
 export interface AccionRegistrada {
