@@ -66,6 +66,11 @@ async function leerLead(id: number): Promise<LeadParaAsistente | null> {
     /* El adjunto se guardaba y ahí se quedaba: el asistente no sabía que
        existía, así que pedía la foto del recibo a quien ya la había subido. */
     reciboAdjunto: Boolean(fila.filePath),
+    /* Y la ruta, para que el asistente pueda LEERLA. Antes solo sabía que
+       existía, así que dimensionaba con el consumo que la persona había
+       escrito de memoria en el formulario en vez de con el histórico de la
+       factura que tenía adjunta. */
+    reciboUrl: fila.filePath ?? null,
   };
 }
 

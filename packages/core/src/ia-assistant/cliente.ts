@@ -102,6 +102,14 @@ export interface LeadParaAsistente {
    * que del otro lado no hay nadie leyendo.
    */
   reciboAdjunto?: boolean;
+  /**
+   * Ruta del adjunto, relativa a este sitio.
+   *
+   * Relativa y no absoluta a propósito: detrás del proxy este proceso solo se
+   * ve a sí mismo como localhost, así que una URL construida aquí apuntaría a
+   * un host que el asistente no puede resolver. Él sí sabe dónde está el CRM.
+   */
+  reciboUrl?: string | null;
 }
 
 /**
