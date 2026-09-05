@@ -94,6 +94,14 @@ export interface LeadParaAsistente {
   budget?: string | null;
   source?: string | null;
   projectType?: string | null;
+  /**
+   * Si adjuntó su recibo de energía al registrarse.
+   *
+   * Solo lo llena Energy. Sirve para que el primer mensaje no le pida una foto
+   * que la persona acaba de subir, que es la forma más rápida de que concluya
+   * que del otro lado no hay nadie leyendo.
+   */
+  reciboAdjunto?: boolean;
 }
 
 /**

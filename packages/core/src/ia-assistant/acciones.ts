@@ -63,6 +63,9 @@ async function leerLead(id: number): Promise<LeadParaAsistente | null> {
     budget: fila.budget ?? null,
     source: fila.source ?? null,
     projectType: fila.projectType ?? fila.modality ?? fila.installType ?? null,
+    /* El adjunto se guardaba y ahí se quedaba: el asistente no sabía que
+       existía, así que pedía la foto del recibo a quien ya la había subido. */
+    reciboAdjunto: Boolean(fila.filePath),
   };
 }
 
