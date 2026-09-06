@@ -25,7 +25,9 @@ type TipoEvento =
   | "respondio"
   | "reunion_agendada"
   | "escalado"
-  | "sin_respuesta";
+  | "sin_respuesta"
+  /** El cliente aceptó que se le arme una propuesta comercial. */
+  | "propuesta_solicitada";
 
 interface Evento {
   crmId: number;
@@ -48,6 +50,9 @@ const TRANSICIONES: Record<TipoEvento, { stage: string | null; status: string | 
   respondio: { stage: "En análisis", status: "Requiere seguimiento" },
   reunion_agendada: { stage: "En análisis", status: "Requiere seguimiento" },
   escalado: { stage: null, status: "Requiere seguimiento" },
+  /* Sí mueve la etapa: aceptar una propuesta es el salto cualitativo del
+     embudo. Deja de ser alguien que pregunta y pasa a ser alguien que compara. */
+  propuesta_solicitada: { stage: "En análisis", status: "Requiere seguimiento" },
   sin_respuesta: { stage: null, status: "Requiere seguimiento" },
 };
 
@@ -102,6 +107,32 @@ export async function POST(req: Request) {
      * pero de nadie. Un prospecto esperando a que alguien retome se enfría en
      * minutos, así que es la tarea más urgente de las tres.
      */
+    /*
+     * La propuesta prometida se convierte en tarea, con plazo.
+     *
+     * El asistente le dice al cliente que se la envía; si eso no queda en
+     * ninguna parte, la promesa se pierde y el que queda mal es Voltac. Las 48
+     * horas son las que se le prometen: un pendiente que venciera después de
+     * lo prometido dejaría el panel tranquilo mientras alguien espera.
+     */
+    if (evento.tipo === "propuesta_solicitada") {
+      const horas = Number(evento.datos?.horasDePlazo ?? 48);
+      const vence = new Date(Date.now() + horas * 3600_000).toISOString();
+      await crearTarea({
+        tipo: "propuesta",
+        titulo: `Armar y enviar la propuesta de ${lead.fullName}`,
+        detalle: evento.nota,
+        quoteId: evento.crmId,
+        venceEn: vence,
+        datos: {
+          leido:
+            typeof evento.datos?.resumen === "string"
+              ? { sistema: evento.datos.resumen }
+              : undefined,
+        },
+      });
+    }
+
     if (evento.tipo === "escalado") {
       await crearTarea({
         tipo: "escalamiento",
