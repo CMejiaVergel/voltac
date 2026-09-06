@@ -411,19 +411,40 @@ export default function Configuracion({ disponible }: { disponible: boolean }) {
                 <Trash2 size={14} />
               </button>
             </div>
-            {(["cliente", "mal", "bien"] as (keyof EjemploTono)[]).map((campo) => (
+            {(["situacion", "cliente", "mal", "bien"] as (keyof EjemploTono)[]).map((campo) => (
               <div key={campo}>
                 <label
                   className={cn(
                     "text-[10px] font-bold uppercase tracking-wider",
-                    campo === "mal" ? "text-red-600" : campo === "bien" ? "text-green-700" : "text-secondary/60",
+                    campo === "mal"
+                      ? "text-red-600"
+                      : campo === "bien"
+                        ? "text-green-700"
+                        : "text-secondary/60",
                   )}
                 >
-                  {campo === "cliente" ? "Dice el cliente" : campo === "mal" ? "Mal" : "Bien"}
+                  {campo === "situacion"
+                    ? "Cuándo aplica"
+                    : campo === "cliente"
+                      ? "Dice el cliente"
+                      : campo === "mal"
+                        ? "Mal"
+                        : "Bien"}
                 </label>
+                {campo === "situacion" && (
+                  /* No es decorativo: sin esto un ejemplo enseña de más. Uno con
+                     "Hola" y una respuesta que citaba el consumo del cliente le
+                     enseñaba al asistente a citar cifras ante cualquier saludo
+                     —y a inventárselas cuando no las tenía—. */
+                  <p className="text-[11px] text-muted-foreground mb-1">
+                    Bajo qué condición vale este ejemplo. Si la respuesta usa datos del cliente,
+                    dilo aquí: sin eso el asistente los citará también cuando no los tenga.
+                  </p>
+                )}
                 <textarea
                   rows={campo === "cliente" ? 1 : 2}
-                  value={e[campo]}
+                  placeholder={campo === "situacion" ? "p. ej. su factura ya se leyó y tienes su consumo" : undefined}
+                  value={e[campo] ?? ""}
                   onChange={(ev) =>
                     set(
                       "ejemplos",
@@ -438,7 +459,9 @@ export default function Configuracion({ disponible }: { disponible: boolean }) {
         ))}
 
         <button
-          onClick={() => set("ejemplos", [...ajustes.ejemplos, { cliente: "", mal: "", bien: "" }])}
+          onClick={() =>
+            set("ejemplos", [...ajustes.ejemplos, { situacion: "", cliente: "", mal: "", bien: "" }])
+          }
           className="flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
         >
           <Plus size={14} /> Agregar ejemplo

@@ -327,6 +327,14 @@ export function novedades(desde: number): Promise<Novedades> {
 
 /** Un ejemplo comparado. Es lo que más mueve el tono, más que cualquier regla. */
 export interface EjemploTono {
+  /**
+   * Bajo qué condición vale el ejemplo.
+   *
+   * Sin esto un ejemplo enseña de más: uno con "Hola" como mensaje y una
+   * respuesta que citaba el consumo del cliente le enseñaba al asistente a
+   * citar cifras ante cualquier saludo —y a inventárselas cuando no las tenía.
+   */
+  situacion?: string;
   cliente: string;
   mal: string;
   bien: string;
