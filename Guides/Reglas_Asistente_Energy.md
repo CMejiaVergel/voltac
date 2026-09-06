@@ -33,10 +33,15 @@ parece:
 
 | Estado | Cuántos |
 |---|---|
-| ✅ Verificado | 14 |
-| 🟡 Hecho, sin verificar | 9 |
-| ⚠️ A medias | 2 |
+| ✅ Verificado | 17 |
+| 🟡 Hecho, sin verificar | 12 |
+| ⚠️ A medias | 1 |
 | ⏳ Pendiente | 3 |
+
+> **Las 🟡 son las que importan ahora.** Casi todas viven solo en el prompt, y
+> la experiencia de estas semanas dice que una regla que depende de que el
+> modelo obedezca reincide. Verificarlas con conversaciones simuladas es el
+> siguiente paso acordado.
 
 ---
 
@@ -407,13 +412,14 @@ después de reiniciar el proceso sigue sin poder atenderse.
 
 ---
 
-### ⚠️ 6.3 · El panel muestra lo mismo que el teléfono
+### 🟡 6.3 · El panel muestra lo mismo que el teléfono
 
 **Se pidió:** en WhatsApp se ven tres mensajes y en el panel uno solo.
 
 **Se hizo:** un turno por mensaje, partido con la misma función que usa el canal.
 Se arregló primero en el turno de conversación y **se olvidó la ruta del primer
-contacto** —justo el mensaje más largo—; ya está corregida también.
+contacto** —justo el mensaje más largo—; ya está corregida también y verificada
+en el teléfono: el primer contacto sale en tres globos.
 
 **Falta:** marcar en el panel los mensajes que **no se entregaron**. Hoy un fallo
 de entrega se sigue pintando igual que un mensaje entregado. Es CORE-C2 del
@@ -504,6 +510,66 @@ ninguno de los dos.
 
 ---
 
+### ✅ 7.5 · La factura del formulario no gasta el cupo de fotos
+
+**Se pidió:** implícito — el asistente decía "ya tengo tu recibo" y a la vez
+pedía el consumo.
+
+**Se hizo:** el tope de dos lecturas existe para que un cliente no gaste tokens
+mandando fotos por el chat. La factura del formulario es **un** archivo que ya
+está en nuestro servidor, y aun así contaba: al tercer clic en *redactar
+mensaje* el asistente se negaba a leerla. Ahora no cuenta, y el resultado se
+guarda por URL para no volver a mirarla.
+
+**Dónde:** código, `src/media/recibo.ts`.
+
+*Este fallo parecía una alucinación del modelo y no lo era. Es el tercero de esa
+clase.*
+
+---
+
+### ✅ 7.6 · De los dos consumos de una factura, cuál se usa
+
+**Se hizo:** de un recibo salen el consumo del periodo y el pico del histórico,
+y solo el segundo sirve. Iban seguidos y con el mismo peso; ahora el pico va
+primero y marcado, y el del periodo dice explícitamente que no es ese. En la
+factura de prueba son 231 contra 272: un panel entero.
+
+**Dónde:** código, `resumirRecibo()` en `src/pipeline/debounce.ts`.
+
+---
+
+### ✅ 2.8 · El primer mensaje no señala lo que falta
+
+**Se pidió:** quitar "no dejaste nota en el formulario, así que no sé qué te
+trajo". Innecesario y crea fricción en la primera frase.
+
+**Se hizo:** si no dejó nada, ese punto del mensaje se salta entero. Lo que
+falte se pregunta al final, como si nada.
+
+**Dónde:** `instruccionPrimerMensaje()` en `src/leads/contacto.ts`.
+
+---
+
+### ✅ 5.4 · Módulo de Tareas
+
+**Se pidió:** una pestaña entre Calendario y Configuración donde queden las
+tareas de la persona a cargo: recibo ilegible con entrada manual de datos, un
+botón de "no se pudo resolver" que hace que el asistente le pida el dato al
+cliente, y los escalamientos.
+
+**Se hizo:** los tres. Lo que se escribe al resolver una tarea de recibo no se
+queda en la tarea: se copia a la ficha del prospecto, que es de donde el
+asistente lee al redactar.
+
+**Dónde:** `packages/core/src/tareas/` en el sitio web.
+
+**Alcance acordado:** Tareas es **del asistente de WhatsApp**. El Cronograma es
+otro módulo, más general, para actividades del equipo que no son atención al
+cliente. No se mezclan.
+
+---
+
 # 8 · Pendientes
 
 ### ⏳ 8.1 · Módulo de Tareas
@@ -538,8 +604,29 @@ vez y se deja constancia para el modelo, pero el turno no queda marcado.
 
 ### ⏳ 8.3 · Propuesta comercial automática
 
-Generación automática, aprobación humana y envío. Depende de §8.1 y de
-**CORE-CP2** del backlog.
+Generación automática, aprobación humana y envío.
+
+**Congelada a propósito** hasta que el asistente esté pulido. La razón la puso
+el usuario y es la correcta: con un cliente real, hoy el asistente se rompe. Y
+hay otra que refuerza la misma decisión: esa función *escribe documentos con
+cifras* hacia el cliente, así que hereda todos los defectos que sigan vivos en
+el dimensionamiento. Construirla ahora multiplicaría los errores en vez de
+sumar una función.
+
+Depende de §8.1 y de **CORE-CP2** del backlog.
+
+---
+
+### ⏳ 8.4 · Validar con conversaciones simuladas
+
+Las reglas marcadas 🟡 viven solo en el prompt y no se han comprobado en una
+conversación real completa. Probarlas en producción con el número del usuario
+resultó lento y frustrante.
+
+**Acordado:** definir una *conversación típica* —cómo escribe de verdad un
+prospecto: un "hola", una pausa de treinta segundos, un segundo mensaje— y
+usarla como guion base para simular contra el asistente, ajustando reglas y
+prompt según lo que salga.
 
 ---
 
