@@ -166,6 +166,43 @@ export async function getDB() {
         isDeleted BOOLEAN DEFAULT 0
       );
 
+      /*
+       * Tareas del panel: lo que un sistema automatico no pudo terminar solo.
+       *
+       * Nace de un caso concreto y del hueco que dejaba. El asistente lee la
+       * factura que el prospecto sube en la web; cuando esa foto no se puede
+       * leer, antes solo quedaba un aviso en pantalla que alguien tenia que
+       * ver por casualidad. Ahora queda una tarea con nombre y con dueño.
+       *
+       * Vive en la base de la marca y no en una comun: una tarea de Energy no
+       * le sirve a nadie en Systems, y separarlas fisicamente evita el
+       * "WHERE vertical" olvidado que mezclaria las dos.
+       *
+       * "datos" es JSON a proposito. Cada tipo de tarea pide cosas distintas
+       * --de un recibo hacen falta el consumo pico y la direccion; de un
+       * escalamiento, nada-- y una columna por campo obligaria a migrar la
+       * tabla cada vez que aparezca un tipo nuevo. Lo que se guarda ahi lo
+       * define y lo valida quien resuelve la tarea, no la base.
+       */
+      CREATE TABLE IF NOT EXISTS tareas (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        tipo TEXT NOT NULL,
+        estado TEXT NOT NULL DEFAULT 'pendiente',
+        titulo TEXT NOT NULL,
+        detalle TEXT NOT NULL DEFAULT '',
+        quoteId INTEGER,
+        conversationId TEXT,
+        datos TEXT NOT NULL DEFAULT '{}',
+        venceEn DATETIME,
+        creadaEn DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        resueltaEn DATETIME,
+        resueltaPor TEXT,
+        nota TEXT
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_tareas_estado ON tareas (estado, creadaEn DESC);
+      CREATE INDEX IF NOT EXISTS idx_tareas_quote ON tareas (quoteId);
+
       CREATE TABLE IF NOT EXISTS notes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         quoteId INTEGER,
@@ -461,6 +498,17 @@ export async function getDB() {
     if (!columnNames.includes('objective')) alterQueries.push("ALTER TABLE quotes ADD COLUMN objective TEXT;");
     if (!columnNames.includes('gridType')) alterQueries.push("ALTER TABLE quotes ADD COLUMN gridType TEXT;");
     if (!columnNames.includes('filePath')) alterQueries.push("ALTER TABLE quotes ADD COLUMN filePath TEXT;");
+    /*
+     * El consumo PICO, aparte del que escribe la persona en el formulario.
+     *
+     * No son lo mismo y confundirlos dimensiona mal: `consumption` es lo que el
+     * prospecto recuerda de un mes cualquiera, y el pico es el mes mas alto de
+     * los ultimos seis, que es sobre el que se dimensiona para que el sistema
+     * le sirva tambien en el mes mas caliente. Sale de la factura --leida por
+     * el modelo o escrita a mano al resolver una tarea-- nunca de la memoria
+     * del cliente.
+     */
+    if (!columnNames.includes('consumoPicoKwh')) alterQueries.push("ALTER TABLE quotes ADD COLUMN consumoPicoKwh REAL;");
     // Proyectos: metricas propias de Energy
     const projCols = (await db.all("PRAGMA table_info(projects)")).map((c: any) => c.name);
     if (!projCols.includes('reductionPercent')) alterQueries.push("ALTER TABLE projects ADD COLUMN reductionPercent TEXT;");

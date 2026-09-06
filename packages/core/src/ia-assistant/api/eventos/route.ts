@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { crearTarea } from "../../../tareas/acciones";
 import { getDB } from "../../../db";
 
 /**
@@ -92,6 +93,25 @@ export async function POST(req: Request) {
       "INSERT INTO notes (quoteId, content, author, isSystem) VALUES (?, ?, ?, 1)",
       [evento.crmId, evento.nota, "Asistente WhatsApp"],
     );
+
+    /*
+     * Un escalamiento deja tarea, no solo una nota.
+     *
+     * El asistente pasa la conversación a una persona y se calla. Hasta aquí
+     * eso quedaba como una nota en la ficha y un cambio de estado: informativo,
+     * pero de nadie. Un prospecto esperando a que alguien retome se enfría en
+     * minutos, así que es la tarea más urgente de las tres.
+     */
+    if (evento.tipo === "escalado") {
+      await crearTarea({
+        tipo: "escalamiento",
+        titulo: `Retomar la conversación con ${lead.fullName}`,
+        detalle: evento.nota,
+        quoteId: evento.crmId,
+        conversationId:
+          typeof evento.datos?.conversationId === "string" ? evento.datos.conversationId : null,
+      });
+    }
 
     const { stage, status } = TRANSICIONES[evento.tipo];
     const cambios: string[] = [];

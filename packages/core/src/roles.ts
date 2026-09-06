@@ -174,6 +174,10 @@ export const ACCESO: readonly ReglaAcceso[] = [
   /* La configuración del comportamiento no: quien atiende conversaciones no
      tiene por qué poder cambiar el modelo, la temperatura ni el tono con que
      habla la empresa. */
+  /* Las tareas las resuelve quien atiende, no solo el dueño: un recibo
+     ilegible bloquea el primer contacto y esperar a que el propietario lo
+     desbloquee seria perder el prospecto por un permiso. */
+  { prefijo: "/admin/ia-assistant/tareas", roles: ["propietario", "asesor", "operador"] },
   { prefijo: "/admin/ia-assistant/configuracion", roles: ["propietario"] },
   /* Donde vuelve Google tras autorizar. Por prefijo caería en la regla de
      arriba —propietario y asesor—, pero conectar una cuenta de Google es

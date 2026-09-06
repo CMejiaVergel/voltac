@@ -3,7 +3,7 @@
 import * as React from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { Inbox, LayoutDashboard, Settings, Activity, CalendarDays } from "lucide-react";
+import { Inbox, LayoutDashboard, Settings, Activity, CalendarDays , ListChecks} from "lucide-react";
 import { cn } from "../../utils";
 
 /**
@@ -34,6 +34,7 @@ export default function IaAssistantLayout({
     { label: "Panel", href: "/admin/ia-assistant", icon: <LayoutDashboard size={18} />, exact: true, listo: true },
     { label: "Conversaciones", href: "/admin/ia-assistant/conversaciones", icon: <Inbox size={18} />, listo: true },
     { label: "Calendario", href: "/admin/ia-assistant/calendario", icon: <CalendarDays size={18} />, listo: true },
+    { label: "Tareas", href: "/admin/ia-assistant/tareas", icon: <ListChecks size={18} />, listo: true },
     { label: "Configuración", href: "/admin/ia-assistant/configuracion", icon: <Settings size={18} />, listo: true },
     { label: "Actividad", href: "/admin/ia-assistant/actividad", icon: <Activity size={18} />, listo: true },
   ];

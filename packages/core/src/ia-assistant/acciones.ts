@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getDB } from "../db";
+import { crearTarea } from "../tareas/acciones";
 import { currentVertical } from "../vertical";
 import {
   asistenteDisponible,
@@ -77,7 +78,11 @@ async function leerLead(id: number): Promise<LeadParaAsistente | null> {
 /** Resume en una frase lo que el formulario de Energy sí recogió. */
 function contextoSolar(fila: Record<string, any>): string | null {
   const partes: string[] = [];
-  if (fila.consumption) partes.push(`consume ${fila.consumption} kWh al mes`);
+  /* El pico manda sobre lo que la persona escribió de memoria: es el dato con
+     el que se dimensiona, y sale de la factura --leída por el modelo o
+     transcrita a mano al resolver una tarea--, no del recuerdo del cliente. */
+  if (fila.consumoPicoKwh) partes.push(`su consumo pico es de ${fila.consumoPicoKwh} kWh al mes`);
+  else if (fila.consumption) partes.push(`consume ${fila.consumption} kWh al mes`);
   if (fila.location || fila.address) partes.push(`en ${fila.location ?? fila.address}`);
   if (fila.installType) partes.push(`instalación de tipo ${fila.installType}`);
   if (fila.gridType) partes.push(`red ${fila.gridType}`);
@@ -99,7 +104,46 @@ export async function prepararWhatsApp(
   }
 
   try {
-    return { ok: true, datos: await pedirBorrador(lead) };
+    const previo = await pedirBorrador(lead);
+
+    /*
+     * Si la factura no se pudo leer, queda una tarea con dueño.
+     *
+     * Antes solo quedaba el aviso ámbar sobre el borrador, que se ve una vez y
+     * desaparece en cuanto se cierra la ficha. El asistente escribe igual
+     * —sin datos de consumo— y el pendiente se evapora: nadie recuerda que
+     * había una factura por transcribir hasta que el prospecto pregunta por
+     * qué le vuelven a pedir lo que ya mandó.
+     *
+     * No bloquea el envío a propósito. El primer contacto sin cifras sigue
+     * siendo un buen primer contacto, y retenerlo hasta que alguien resuelva
+     * la tarea enfría al prospecto por un dato que se puede pedir hablando.
+     */
+    if (previo.recibo && previo.recibo.leido === false) {
+      await crearTarea({
+        tipo: "recibo",
+        titulo: `Completar los datos de la factura de ${lead.fullName}`,
+        detalle: previo.recibo.motivo ?? "El modelo no pudo leer la imagen.",
+        quoteId: lead.crmId,
+        datos: {
+          archivo: lead.reciboUrl ?? undefined,
+          faltantes: ["consumo pico", "dirección"],
+        },
+      });
+    } else if (previo.recibo?.leido && previo.recibo.faltantes?.length) {
+      await crearTarea({
+        tipo: "recibo",
+        titulo: `Falta un dato de la factura de ${lead.fullName}`,
+        detalle: `Se leyó la factura pero no se alcanzó a ver: ${previo.recibo.faltantes.join(", ")}.`,
+        quoteId: lead.crmId,
+        datos: {
+          archivo: lead.reciboUrl ?? undefined,
+          faltantes: previo.recibo.faltantes,
+        },
+      });
+    }
+
+    return { ok: true, datos: previo };
   } catch (err) {
     return { ok: false, error: err instanceof Error ? err.message : "Falló la preparación." };
   }
