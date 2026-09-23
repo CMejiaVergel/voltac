@@ -12,8 +12,10 @@
     "dev:energy": "npm run dev --workspace=@voltac/energy",
     "build:systems": "npm run build --workspace=@voltac/systems",
     "build:energy": "npm run build --workspace=@voltac/energy",
-    "build": "npm run build:systems && npm run build:energy",
-    "typecheck": "npm run typecheck --workspaces --if-present"
+    "build": "npm run build:systems && npm run build:energy && npm run build:industrial",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "dev:industrial": "npm run dev --workspace=@voltac/industrial",
+    "build:industrial": "npm run build --workspace=@voltac/industrial"
   },
   "overrides": {
     "postcss": ">=8.5.26"

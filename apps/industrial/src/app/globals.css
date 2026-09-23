@@ -1,0 +1,303 @@
+@import "tailwindcss";
+
+/*
+ * Tailwind v4 descubre las clases solo, pero partiendo de la raiz de ESTA
+ * aplicacion, y las pantallas compartidas viven en packages/core. Sin esta
+ * linea, de todo lo que escribe el nucleo solo funcionaban las clases que por
+ * casualidad usaba tambien algun archivo de la app: el resto llegaba al HTML
+ * sin ninguna regla detras. Asi se colo un calendario cuya rejilla de siete
+ * columnas se pintaba en una sola.
+ */
+@source "../../../../packages/core/src";
+
+@plugin "tailwindcss-animate";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  --background: #ffffff;
+  --foreground: #1b1f26;
+
+  --card: #fbfaf8;
+  --card-foreground: #1b1f26;
+
+  --popover: #ffffff;
+  --popover-foreground: #1b1f26;
+
+  /* Naranja de seguridad: el color del casco, la señalización y el equipo de
+     planta. Distingue esta línea del azul de Voltac Systems y del verde de
+     Voltac Energy de un vistazo, que es justo lo que tiene que hacer. */
+  --primary: #d4521c;
+  --primary-foreground: #ffffff;
+
+  /* Grafito, no azul marino: el fondo de las bandas oscuras y de la barra de
+     navegación. Acero antes que noche. */
+  --secondary: #1b1f26;
+  --secondary-foreground: #ffffff;
+
+  --muted: #f5f3f0;
+  --muted-foreground: #6b6560;
+
+  --accent: #f0a04b;
+  --accent-foreground: #1b1f26;
+
+  --destructive: #ef4444;
+  --destructive-foreground: #fafafa;
+
+  --border: #e6e2dc;
+  --input: #e6e2dc;
+  --ring: #d4521c;
+
+  /* Grafito de marca para superficies amplias (tarjetas y bandas de sección).
+     Un punto más claro que `secondary`, que es el de la barra de navegación y
+     el de las secciones oscuras completas. */
+  --ink: #2a3038;
+
+  --radius: 0.5rem;
+}
+
+.dark {
+  --background: #14171c;
+  --foreground: #f7f5f2;
+
+  --card: #1f242b;
+  --card-foreground: #f7f5f2;
+
+  --popover: #14171c;
+  --popover-foreground: #f7f5f2;
+
+  --primary: #e8672f;
+  --primary-foreground: #14171c;
+
+  --secondary: #2a3038;
+  --secondary-foreground: #ffffff;
+
+  --muted: #1f242b;
+  --muted-foreground: #a09a92;
+
+  --accent: #f0a04b;
+  --accent-foreground: #14171c;
+
+  --destructive: #7f1d1d;
+  --destructive-foreground: #fef2f2;
+
+  --border: #2a3038;
+  --input: #2a3038;
+  --ring: #e8672f;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-ink: var(--ink);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+
+  --font-sans: var(--font-inter);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer components {
+  /* Escala tipográfica del sitio público.
+     Centralizar los saltos por breakpoint es lo que mantiene la coherencia
+     entre móvil, tablet y escritorio: si un título cambia, cambia en todos
+     los formatos a la vez. */
+
+  /* Titular de portada */
+  .display-1 {
+    @apply text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.1];
+  }
+  /* Título de sección */
+  .display-2 {
+    @apply text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-tight;
+  }
+  /* Título de tarjeta destacada o de servicio en detalle */
+  .display-3 {
+    @apply text-xl sm:text-2xl md:text-3xl font-black tracking-tight leading-tight;
+  }
+  /* Párrafo introductorio bajo un título */
+  .lead {
+    @apply text-base sm:text-lg font-light leading-relaxed;
+  }
+  /* Antetítulo: mayúsculas espaciadas, sin fondo */
+  .eyebrow {
+    @apply text-xs font-bold uppercase tracking-[0.2em] text-primary;
+  }
+  /* Relleno estándar de tarjeta: más ajustado en móvil */
+  .card-pad {
+    @apply p-6 sm:p-8;
+  }
+}
+
+@layer utilities {
+  /* Barras de navegación horizontales sin scrollbar visible (ej. tabs del panel de contabilidad) */
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* --- Texturas técnicas -------------------------------------------------
+     Retícula y trama de puntos como SVG embebido: dan el aire de plano
+     técnico sin pedir un solo archivo al servidor. */
+  .bg-grid {
+    background-image:
+      linear-gradient(to right, color-mix(in srgb, var(--primary) 12%, transparent) 1px, transparent 1px),
+      linear-gradient(to bottom, color-mix(in srgb, var(--primary) 12%, transparent) 1px, transparent 1px);
+    background-size: 56px 56px;
+  }
+  .bg-dots {
+    background-image: radial-gradient(
+      color-mix(in srgb, var(--primary) 22%, transparent) 1px,
+      transparent 1px
+    );
+    background-size: 22px 22px;
+  }
+  /* Desvanece una textura hacia los bordes para que nunca corte en seco */
+  .mask-fade-y {
+    mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
+    -webkit-mask-image: linear-gradient(to bottom, transparent, black 15%, black 85%, transparent);
+  }
+  .mask-fade-radial {
+    mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+    -webkit-mask-image: radial-gradient(ellipse at center, black 30%, transparent 75%);
+  }
+
+  /* --- Barrido de luz en botones ---------------------------------------- */
+  .shine {
+    position: relative;
+    overflow: hidden;
+  }
+  .shine::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-120%) skewX(-20deg);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.28),
+      transparent
+    );
+    transition: transform 0.75s cubic-bezier(0.22, 1, 0.36, 1);
+    pointer-events: none;
+  }
+  .shine:hover::after {
+    transform: translateX(120%) skewX(-20deg);
+  }
+
+  /* --- Línea divisoria con haz de luz recorriéndola ---------------------- */
+  .beam {
+    position: relative;
+    height: 1px;
+    background: color-mix(in srgb, var(--primary) 18%, transparent);
+    overflow: hidden;
+  }
+  .beam::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    width: 40%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--accent),
+      transparent
+    );
+    animation: beam-slide 5s ease-in-out infinite;
+  }
+
+  @keyframes beam-slide {
+    0% {
+      transform: translateX(-100%);
+      opacity: 0;
+    }
+    20%,
+    80% {
+      opacity: 1;
+    }
+    100% {
+      transform: translateX(350%);
+      opacity: 0;
+    }
+  }
+
+  /* --- Latido suave para indicadores de estado -------------------------- */
+  @keyframes soft-pulse {
+    0%,
+    100% {
+      opacity: 0.35;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.35);
+    }
+  }
+  .soft-pulse {
+    animation: soft-pulse 2.8s ease-in-out infinite;
+  }
+
+  /* --- Aparición del contenido antes de que hidrate el JS ---------------- */
+  /* Evita el "flash" de contenido sin animar en conexiones lentas */
+  .will-reveal {
+    will-change: transform, opacity, filter;
+  }
+}
+
+/* Respeto por quien pidió menos movimiento: se apaga todo lo decorativo.
+   Las animaciones de Framer Motion se desactivan desde el propio componente
+   con useReducedMotion; esto cubre lo que se anima solo con CSS. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .beam::after,
+  .soft-pulse {
+    animation: none !important;
+  }
+}

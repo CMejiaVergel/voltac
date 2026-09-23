@@ -4,15 +4,31 @@
     {
       "name": "voltac-systems",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev:systems"],
+      "runtimeArgs": [
+        "run",
+        "dev:systems"
+      ],
       "port": 3000,
       "autoPort": true
     },
     {
       "name": "voltac-energy",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev:energy"],
+      "runtimeArgs": [
+        "run",
+        "dev:energy"
+      ],
       "port": 3001,
+      "autoPort": true
+    },
+    {
+      "name": "voltac-industrial",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev:industrial"
+      ],
+      "port": 3002,
       "autoPort": true
     }
   ]

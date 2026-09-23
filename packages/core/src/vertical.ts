@@ -1,8 +1,8 @@
 /**
  * Líneas de negocio de Voltac Systems S.A.S.
  *
- * La compañía es una sola y está constituida una sola vez; lo que hay son dos
- * frentes comerciales con marca propia. Esa distinción manda en todo el
+ * La compañía es una sola y está constituida una sola vez; lo que hay son
+ * varios frentes comerciales con marca propia. Esa distinción manda en todo el
  * sistema:
  *
  *  - La **contabilidad es de la empresa**, no de la línea. Los contadores
@@ -16,7 +16,7 @@
  * no en la interfaz: un descuido al pintar una tabla no puede mezclar marcas.
  */
 
-export const VERTICALS = ["systems", "energy"] as const;
+export const VERTICALS = ["systems", "energy", "industrial"] as const;
 export type Vertical = (typeof VERTICALS)[number];
 
 export interface VerticalConfig {
@@ -47,6 +47,14 @@ export const VERTICAL_CONFIG: Record<Vertical, VerticalConfig> = {
     nit: "901.734.603",
     domain: "https://energy.voltac.com.co",
     label: "Energía renovable",
+  },
+  industrial: {
+    id: "industrial",
+    name: "Voltac Industrial",
+    legalName: "Voltac Systems S.A.S.",
+    nit: "901.734.603",
+    domain: "https://industrial.voltac.com.co",
+    label: "Mantenimiento e instrumentación",
   },
 };
 
