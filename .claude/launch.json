@@ -22,11 +22,11 @@
       "autoPort": true
     },
     {
-      "name": "voltac-industrial",
+      "name": "voltac-industry",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
         "run",
-        "dev:industrial"
+        "dev:industry"
       ],
       "port": 3002,
       "autoPort": true

@@ -10,7 +10,7 @@
 #     contenido.db         calendario editorial y publicaciones
 #     systems/voltac.db    prospectos, proyectos y noticias de esa marca
 #     energy/voltac.db     idem, de la segunda marca
-#     industrial/voltac.db idem, de la tercera
+#     industry/voltac.db  idem, de la tercera
 #     uploads/             imagenes de proyectos y del blog, por marca
 #
 # ATENCION al historial de este archivo: hasta ahora apuntaba a
@@ -87,7 +87,7 @@ respaldar_base "contabilidad.db"
 respaldar_base "sistema.db"
 respaldar_base "contenido.db"
 respaldar_base "systems/voltac.db"
-respaldar_base "industrial/voltac.db"
+respaldar_base "industry/voltac.db"
 respaldar_base "energy/voltac.db"
 
 # Que el respaldo salga vacio y el script termine con exito seria la peor

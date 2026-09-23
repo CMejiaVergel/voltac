@@ -16,7 +16,7 @@
  * no en la interfaz: un descuido al pintar una tabla no puede mezclar marcas.
  */
 
-export const VERTICALS = ["systems", "energy", "industrial"] as const;
+export const VERTICALS = ["systems", "energy", "industry"] as const;
 export type Vertical = (typeof VERTICALS)[number];
 
 export interface VerticalConfig {
@@ -48,9 +48,9 @@ export const VERTICAL_CONFIG: Record<Vertical, VerticalConfig> = {
     domain: "https://energy.voltac.com.co",
     label: "Energía renovable",
   },
-  industrial: {
-    id: "industrial",
-    name: "Voltac Industrial",
+  industry: {
+    id: "industry",
+    name: "Voltac Industry",
     legalName: "Voltac Systems S.A.S.",
     nit: "901.734.603",
     domain: "https://industry.voltac.com.co",
