@@ -53,7 +53,7 @@ export const VERTICAL_CONFIG: Record<Vertical, VerticalConfig> = {
     name: "Voltac Industrial",
     legalName: "Voltac Systems S.A.S.",
     nit: "901.734.603",
-    domain: "https://industrial.voltac.com.co",
+    domain: "https://industry.voltac.com.co",
     label: "Mantenimiento e instrumentación",
   },
 };

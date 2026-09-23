@@ -412,12 +412,17 @@ export const GLOSSARY = [
 export const CONTACT = {
   legalName: "Voltac Systems S.A.S.",
   nit: "901.734.603",
-  email: "industrial@voltac.com.co",
+  /* sales@ y no una direccion propia de la linea: es el buzon que se sabe que
+     existe. Publicar industry@voltac.com.co antes de crearlo significa que los
+     correos del formulario y los de la politica de privacidad rebotan, y de
+     eso nadie se entera hasta que se pierde un cliente. Se cambia el dia que
+     el buzon este creado. */
+  email: "sales@voltac.com.co",
   devEmail: "dev@voltac.com.co",
-  privacyEmail: "industrial@voltac.com.co",
+  privacyEmail: "sales@voltac.com.co",
   phone: "+57 305 246 1088",
   phoneHref: "+573052461088",
-  site: "https://industrial.voltac.com.co",
+  site: "https://industry.voltac.com.co",
   cities: "Cartagena, Barranquilla, Santa Marta y el resto del país",
   address: "Urbanización Britania, Cartagena de Indias, Bolívar",
   /** Mapa embebido del pie de página (no requiere clave de Google Maps). */
